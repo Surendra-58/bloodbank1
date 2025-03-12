@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Register</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f7fc;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+
+        .container {
+            background-color: #ffffff;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            width: 100%;
+            max-width: 500px;
+        }
+
+        h1 {
+            text-align: center;
+            color: #333;
+        }
+
+        form {
+            display: flex;
+            flex-direction: column;
+        }
+
+        label {
+            font-weight: bold;
+            margin-top: 10px;
+            margin-bottom: 5px;
+            color: #555;
+        }
+
+        input, textarea, select {
+            padding: 10px;
+            margin-bottom: 15px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+            color: #333;
+        }
+
+        input[type="date"] {
+            cursor: pointer;
+        }
+
+        button {
+            padding: 12px;
+            background-color: #4CAF50;
+            color: white;
+            font-size: 16px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        button:hover {
+            background-color: #45a049;
+        }
+
+        .error {
+            color: red;
+            font-size: 12px;
+        }
+
+        .field-group {
+            margin-bottom: 20px;
+        }
+
+        .field-group.hidden {
+            display: none;
+        }
+
+        #organization-fields, #user-fields {
+            display: none;
+        }
+
+        /* Responsive design */
+        @media (max-width: 600px) {
+            .container {
+                padding: 20px;
+                width: 90%;
+            }
+
+            h1 {
+                font-size: 22px;
+            }
+
+            label {
+                font-size: 14px;
+            }
+        }
+    </style>
+    <script>
+        document.addEventListener("DOMContentLoaded", function() {
+            const userTypeSelect = document.getElementById('id_user_type');
+            const dobField = document.getElementById('id_dob');
+            const genderField = document.getElementById('id_gender');
+            const bloodGroupField = document.getElementById('id_blood_group');
+            const firstNameField = document.getElementById('id_first_name');
+            const lastNameField = document.getElementById('id_last_name');
+            const organizationFields = document.getElementById('organization-fields');
+            const userFields = document.getElementById('user-fields');
+            
+            function toggleFields() {
+                if (userTypeSelect.value === "2") {  // Hospital
+                    organizationFields.style.display = "block";
+                    userFields.style.display = "none";
+                    
+                    // Hide fields that are not needed for hospitals
+                    dobField.closest('.field-group').classList.add('hidden');
+                    genderField.closest('.field-group').classList.add('hidden');
+                    bloodGroupField.closest('.field-group').classList.add('hidden');
+                    firstNameField.closest('.field-group').classList.add('hidden');
+                    lastNameField.closest('.field-group').classList.add('hidden');
+                } else {  // User
+                    organizationFields.style.display = "none";
+                    userFields.style.display = "block";
+
+                    // Show fields that are needed for users
+                    dobField.closest('.field-group').classList.remove('hidden');
+                    genderField.closest('.field-group').classList.remove('hidden');
+                    bloodGroupField.closest('.field-group').classList.remove('hidden');
+                    firstNameField.closest('.field-group').classList.remove('hidden');
+                    lastNameField.closest('.field-group').classList.remove('hidden');
+                }
+            }
+
+            userTypeSelect.addEventListener('change', toggleFields);
+            toggleFields(); // Initial call to set the visibility based on the user type
+        });
+    </script>
+</head>
+<body>
+
+    <div class="container">
+        <br>
+        <br>
+        <h1>Register</h1>
+        
+        <form method="post" enctype="multipart/form-data">
+            {% csrf_token %}
+            
+            <!-- Display form errors -->
+            {% if form.errors %}
+                <div class="error">
+                    <ul>
+                        {% for field in form %}
+                            {% for error in field.errors %}
+                                <li>{{ error }}</li>
+                            {% endfor %}
+                        {% endfor %}
+                    </ul>
+                </div>
+            {% endif %}
+
+            <!-- Form Fields -->
+            <div class="field-group">
+                <label for="id_email">Email</label>
+                {{ form.email }}
+            </div>
+
+            <div class="field-group">
+                <label for="id_user_type">User Type</label>
+                {{ form.user_type }}
+            </div>
+
+            <div class="field-group">
+                <label for="id_gender">Gender</label>
+                {{ form.gender }}
+            </div>
+
+            <div class="field-group">
+                <label for="id_profile_pic">Profile Picture</label>
+                {{ form.profile_pic }}
+            </div>
+
+            <div class="field-group">
+                <label for="id_address">Address</label>
+                {{ form.address }}
+            </div>
+
+            <div class="field-group">
+                <label for="id_contact_number">Contact Number</label>
+                {{ form.contact_number }}
+            </div>
+
+            <!-- Hidden for Hospitals -->
+            <div class="field-group hidden" id="dob-field">
+                <label for="id_dob">Date of Birth</label>
+                {{ form.dob }}
+            </div>
+
+            <div class="field-group hidden" id="blood-group-field">
+                <label for="id_blood_group">Blood Group</label>
+                {{ form.blood_group }}
+            </div>
+
+            <div class="field-group hidden" id="first-name-field">
+                <label for="id_first_name">First Name</label>
+                {{ form.first_name }}
+            </div>
+
+            <div class="field-group hidden" id="last-name-field">
+                <label for="id_last_name">Last Name</label>
+                {{ form.last_name }}
+            </div>
+
+            <!-- Hospital-Specific Fields -->
+            <div id="organization-fields">
+                <div class="field-group">
+                    <label for="id_organization_name">Hospital Name</label>
+                    {{ form.organization_name }}
+                </div>
+
+                <div class="field-group">
+                    <label for="id_organization_identity">Hospital Identity</label>
+                    {{ form.organization_identity }}
+                </div>
+            </div>
+
+            <!-- User-Specific Fields -->
+            <div id="user-fields">
+                <div class="field-group">
+                    <label for="id_first_name">First Name</label>
+                    {{ form.first_name }}
+                </div>
+
+                <div class="field-group">
+                    <label for="id_last_name">Last Name</label>
+                    {{ form.last_name }}
+                </div>
+            </div>
+
+            <div class="field-group">
+                <label for="id_password">Password</label>
+                {{ form.password }}
+            </div>
+
+            <div class="field-group">
+                <label for="id_confirm_password">Confirm Password</label>
+                {{ form.confirm_password }}
+            </div>
+
+            <button type="submit">Register</button>
+        </form>
+    </div>
+
+</body>
+</html>
