@@ -32,10 +32,14 @@ def login_page(request):
             user = authenticate(request, username=email, password=password)
             
             if user is not None:
-                login(request, user)
-                return redirect("home")  # Redirect after login
+                if user.user_type == "2" and not user.is_approved:
+                    messages.error(request, "Your account is pending approval by the admin.")
+                else:
+                    login(request, user)
+                    return redirect("home")  # Redirect after login
             else:
                 messages.error(request, "Invalid Email or Password")
+
 
     else:
         form = Login_form()
@@ -51,13 +55,27 @@ def home(request):
 
 def register_page(request):
     if request.method == "POST":
+        print("Form submitted!")  # Debugging line
+        print("POST Data:", request.POST)
         form = RegisterForm(request.POST, request.FILES)
         if form.is_valid():
             user = form.save(commit=False)
             user.set_password(form.cleaned_data['password'])  # Hash password
+
+            if user.user_type == "2":  # If hospital staff
+                user.is_approved = False  # Require admin approval
+                messages.info(request, "Your registration is pending approval by the admin.")
+                print("User Type:", user.user_type)
+                print("Is Approved:", user.is_approved)
+
+            else:
+                user.is_approved = True  # Normal users are approved immediately
+                messages.success(request, "Registration successful. Please log in.")
+
             user.save()
-            messages.success(request, "Registration successful. Please log in.")
-            return redirect("login_page")  # Redirect to login page
+            print(user)
+            messages.success(request, "Registration successful.")
+            return redirect("login")  # Redirect to login page
         else:
             messages.error(request, "Error in registration. Please check your details.")
             print(form.errors)
@@ -71,4 +89,17 @@ def logout_page(request):
     if request.user.is_authenticated:  # Use request.user instead of user
         logout(request)
     return redirect('login')  # Redirect to the login page after logout
+
+
+# @login_required
+# def approve_staff(request, user_id):
+#     if not request.user.is_superuser:  # Only admin can approve
+#         return redirect("home")
+
+#     user = get_object_or_404(CustomUser, id=user_id)
+#     user.is_approved = True
+#     user.save()
+#     messages.success(request, f"{user.email} has been approved.")
+#     return redirect("admin_dashboard")  # Redirect to admin panel
+
 

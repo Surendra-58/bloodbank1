@@ -22,6 +22,7 @@ class CustomUserManager(UserManager):
     def create_superuser(self, email, password=None, **extra_fields):
         extra_fields.setdefault("is_staff", True)
         extra_fields.setdefault("is_superuser", True)
+        extra_fields.setdefault("user_type", "admin")
 
         assert extra_fields["is_staff"]
         assert extra_fields["is_superuser"]
@@ -30,7 +31,7 @@ class CustomUserManager(UserManager):
 
 class CustomUser(AbstractUser):
     USER_TYPE = (("1", "Admin"), ("2", "Hospital"), ("3", "User"))
-    GENDER = [("M", "Male"), ("F", "Female")]
+    GENDER = [("M", "Male"), ("F", "Female"),("O","Other")]
     BLOOD_GROUPS = (
     ('A+', 'A+'),
     ('A-', 'A-'),
@@ -40,19 +41,25 @@ class CustomUser(AbstractUser):
     ('AB-', 'AB-'),
     ('O+', 'O+'),
     ('O-', 'O-'),
+
     )
+
+    first_name = models.CharField(max_length=15,null=True,blank=True,default='N/A')
+    last_name = models.CharField(max_length=15,null=True,blank=True,default='N/A')
     
     
     username = None  # Removed username, using email instead
     email = models.EmailField(unique=True)
-    user_type = models.CharField(default=3, choices=USER_TYPE, max_length=1)
-    gender = models.CharField(max_length=1, choices=GENDER)
+    is_approved = models.BooleanField(default=False)  # New field for staff approval
+    user_type = models.CharField(default=3, choices=USER_TYPE, max_length=3)
+    gender = models.CharField(max_length=1, choices=GENDER,null=True,blank=True)
     profile_pic = models.ImageField(null=True, blank=True)
     dob = models.DateField(null=True, blank=True)
-    blood_group = models.CharField(max_length=3, choices=BLOOD_GROUPS, default='A+')
+    blood_group = models.CharField(max_length=4, choices=BLOOD_GROUPS,null=True,blank=True)
     contact_number = models.CharField(max_length=15, null=True, blank=True)
     identity = models.ImageField(null=True,blank=True)
     organization_name = models.CharField(max_length=80, null=True,blank=True)
+    # organization_identity = models.ImageField(null=True,blank=True)
     # is_organization = models.BooleanField(default=False)  # New field to track organizations
     address = models.TextField(null=True,blank=True)
     fcm_token = models.TextField(default="")  # For firebase notifications

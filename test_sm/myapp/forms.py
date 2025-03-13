@@ -1,75 +1,179 @@
 from django import forms
 from .models import CustomUser  # Import CustomUser model
+from django.core.exceptions import ValidationError
 
 
 class Login_form(forms.Form):
-	email = forms.EmailField()
-	password = forms.CharField(widget=forms.PasswordInput(), required=True)
+    email = forms.EmailField()
+    password = forms.CharField(widget=forms.PasswordInput(), required=True)
+
+# class RegisterForm(forms.ModelForm):
+#     contact_number = forms.CharField(widget=forms.TextInput(attrs={"placeholder": "contact number"}), required=True)
+#     password = forms.CharField(widget=forms.PasswordInput(attrs={"placeholder": "password"}), required=True)
+#     confirm_password = forms.CharField(widget=forms.PasswordInput(attrs={"placeholder": "confirm password"}), required=True)
+#     identity = forms.ImageField(required=False)
+#     dob = forms.DateField(widget=forms.DateInput(attrs={"type": "date"}), required=True)
+#     address = forms.CharField(widget=forms.Textarea(attrs={"placeholder": "Enter your address"}), required=True)
+#     organization_name = forms.CharField(required=False, widget=forms.TextInput(attrs={"placeholder": "Organization Name"}))
+#     first_name = forms.CharField(required=False, widget=forms.TextInput(attrs={"placeholder": "First Name"}))
+#     last_name = forms.CharField(required=False, widget=forms.TextInput(attrs={"placeholder": "Last Name"}))
+
+#     class Meta:
+#         model = CustomUser
+#         fields = ["email", "user_type", "gender", "profile_pic", "address", "identity",
+#                   "contact_number", "dob", "blood_group", "organization_name", "first_name", "last_name"]
+
+#     def __init__(self, *args, **kwargs):
+#         super(RegisterForm, self).__init__(*args, **kwargs)
+        
+#         # Dynamically adjust fields based on user type
+#         self.fields["user_type"].choices = [choice for choice in self.fields["user_type"].choices if choice[0] in ["2", "3"]]
+
+
+#         if user_type == "2":  # Hospital
+#             self.fields["dob"].required = False
+#             self.fields["gender"].required = False
+#             self.fields["blood_group"].required = False
+#             self.fields["first_name"].required = False
+#             self.fields["last_name"].required = False
+#             self.fields["organization_name"].required = True  # Organization name required for hospitals
+#             self.fields["identity"].required = True  # Identity document required for hospitals
+
+#         else:  # Regular user
+#             self.fields["dob"].required = True
+#             self.fields["gender"].required = True
+#             self.fields["blood_group"].required = True
+#             self.fields["first_name"].required = True
+#             self.fields["last_name"].required = True
+
+#     def clean(self):
+#         cleaned_data = super().clean()
+#         password = cleaned_data.get("password")
+#         confirm_password = cleaned_data.get("confirm_password")
+#         user_type = cleaned_data.get("user_type")
+#         identity = cleaned_data.get("identity")
+
+#         # Password matching validation
+#         if password and confirm_password and password != confirm_password:
+#             self.add_error("confirm_password", "Passwords do not match.")
+
+#         # User type-specific validation
+#         if user_type == "2":  # Hospital-specific validation
+#             if not cleaned_data.get("organization_name"):
+#                 self.add_error("organization_name", "Organization name is required.")
+#             if not identity:
+#                 self.add_error("identity", "Organization must upload an identity document.")
+
+#         elif user_type == "3":  # Regular user-specific validation
+#             if not cleaned_data.get("first_name") or not cleaned_data.get("last_name"):
+#                 self.add_error(None, "First name and Last name are required for regular users.")
+
+#         return cleaned_data
+
+#     def save(self, commit=True):
+#         user = super().save(commit=False)
+#         if self.cleaned_data["user_type"] == "2":  # If hospital
+#             user.is_staff = True
+#             user.identity = self.cleaned_data.get("identity")
+
+#         if commit:
+#             user.save()
+#         return user
+
+
+
 
 class RegisterForm(forms.ModelForm):
-    contact_number = forms.CharField(widget=forms.TextInput(attrs={"placeholder": "contact number"}) ,required=True)  # Enforce required field
-    password = forms.CharField(widget=forms.PasswordInput(attrs={"placeholder": "password"}), required=True)
-    confirm_password = forms.CharField(widget=forms.PasswordInput(attrs={"placeholder": "confirm-password",}), required=True)
-    organization_identity = forms.ImageField(required=False)
-    dob = forms.DateField(widget=forms.DateInput(attrs={"type": "date", 'class': 'form-control'}), required=True)
+    contact_number = forms.CharField(widget=forms.TextInput(attrs={"placeholder": "Contact Number"}), required=True)
+    password = forms.CharField(widget=forms.PasswordInput(attrs={"placeholder": "Password"}), required=True)
+    confirm_password = forms.CharField(widget=forms.PasswordInput(attrs={"placeholder": "Confirm Password"}), required=True)
+    # identity = forms.FileField(required=True)
+    identity = forms.FileField(
+        required=True,
+        label="Identity Proof",
+        label_suffix="",  # Removes the colon
+    )
+
+
+    dob = forms.DateField(widget=forms.DateInput(attrs={"type": "date"}), required=True)
     address = forms.CharField(widget=forms.Textarea(attrs={"placeholder": "Enter your address"}), required=True)
-    organization_name = forms.CharField(required=False, widget=forms.PasswordInput(attrs={"placeholder": "organization name",}))
-    first_name = forms.CharField(required=False , widget=forms.PasswordInput(attrs={"placeholder": "First name"}))
-    last_name = forms.CharField(required=False, widget=forms.PasswordInput(attrs={"placeholder": "Last name"}))
+    organization_name = forms.CharField(required=False, widget=forms.TextInput(attrs={"placeholder": "Organization Name"}))
+    first_name = forms.CharField(required=False, widget=forms.TextInput(attrs={"placeholder": "First Name"}))
+    last_name = forms.CharField(required=False, widget=forms.TextInput(attrs={"placeholder": "Last Name"}))
+
 
     class Meta:
         model = CustomUser
         fields = ["email", "user_type", "gender", "profile_pic", "address", "identity",
-                  "contact_number", "dob", "blood_group", "organization_name", "address", "first_name", "last_name"]
+                  "contact_number", "dob", "blood_group", "organization_name", "first_name", "last_name"]
 
     def __init__(self, *args, **kwargs):
         super(RegisterForm, self).__init__(*args, **kwargs)
-        # Filter user_type to exclude "Admin" (1)
+
         self.fields["user_type"].choices = [choice for choice in self.fields["user_type"].choices if choice[0] in ["2", "3"]]
-        
-        # Conditional field requirement based on user_type
-        user_type = self.initial.get('user_type', '3')  # Default to "User" if not specified
-        if user_type == "2":  # Hospital type
+
+        # Get user_type from data (handle both GET and POST requests)
+        user_type = self.data.get("user_type") or self.initial.get("user_type")
+
+        if user_type == "2":  # Hospital
             self.fields["dob"].required = False
             self.fields["gender"].required = False
             self.fields["blood_group"].required = False
             self.fields["first_name"].required = False
             self.fields["last_name"].required = False
+            # self.fields["organization_name"].required = True
+            self.fields["organization_name"].required = False  # We handle the requirement dynamically
 
-    def clean_user_type(self):
-        user_type = self.cleaned_data.get("user_type")
-        return str(user_type)  # Convert user_type to a string
+        if user_type == "3":  # Regular user
+            self.fields["dob"].required = True
+            self.fields["gender"].required = False
+            self.fields["blood_group"].required = False
+            self.fields["first_name"].required = False
+            self.fields["last_name"].required = False
 
     def clean(self):
         cleaned_data = super().clean()
         password = cleaned_data.get("password")
         confirm_password = cleaned_data.get("confirm_password")
         user_type = cleaned_data.get("user_type")
-        organization_identity = cleaned_data.get("organization_identity")
 
+        # Password validation
         if password and confirm_password and password != confirm_password:
-            raise forms.ValidationError("Passwords do not match.")
+            self.add_error("confirm_password", "Passwords do not match.")
 
-        if user_type == "2" and not cleaned_data.get("organization_name"):
-            raise forms.ValidationError("Organization name is required.")
+        # Hospital-specific validation
+        if user_type == "2":
+            # if not cleaned_data.get("organization_name"):
+            organization_name = cleaned_data.get("organization_name")
+            if not organization_name:
+                # Raising a ValidationError for custom error message
+                self.add_error('organization_name',"Organization name is required.")
+            if not cleaned_data.get("identity"):
+                self.add_error("identity", "Hospital must upload an identity document.")
 
-        if user_type == "2" and not organization_identity:
-            raise forms.ValidationError("Organization must upload an identity document.")
-
-        if user_type == "3":  # Regular user must provide first and last name
+        # Regular user-specific validation
+        elif user_type == "3":
             if not cleaned_data.get("first_name") or not cleaned_data.get("last_name"):
-                raise forms.ValidationError("First name and Last name are required for users.")
+                self.add_error("first_name", "First name is required for regular users.")
+                self.add_error("last_name", "Last name is required for regular users.")
+                if not cleaned_data.get("blood_group"):
+                    self.add_error("blood_group", "Blood group is required for regular users.")
+                if not cleaned_data.get("gender"):
+                    self.add_error("gender", "Gender is required for regular users.")
 
         return cleaned_data
 
     def save(self, commit=True):
         user = super().save(commit=False)
-        if self.cleaned_data["user_type"] == "2":  # If hospital
-            user.is_staff = True
-            user.identity = self.cleaned_data["organization_identity"]
+        user_type = self.cleaned_data.get("user_type")
+
+        if user_type == "2":  # If hospital
+
+            user.organization_name = self.cleaned_data.get("organization_name")
+            user.is_staff = True  # Mark hospitals as staff
+            user.identity = self.cleaned_data.get("identity")
 
         if commit:
             user.save()
         return user
-
 
