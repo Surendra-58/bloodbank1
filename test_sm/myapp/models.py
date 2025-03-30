@@ -2,6 +2,8 @@ from django.contrib.auth.hashers import make_password
 from django.contrib.auth.models import UserManager
 from django.db import models
 from django.contrib.auth.models import AbstractUser
+from datetime import date
+
 
 
 
@@ -22,7 +24,7 @@ class CustomUserManager(UserManager):
     def create_superuser(self, email, password=None, **extra_fields):
         extra_fields.setdefault("is_staff", True)
         extra_fields.setdefault("is_superuser", True)
-        extra_fields.setdefault("user_type", "admin")
+        extra_fields.setdefault("user_type", "Admin")
 
         assert extra_fields["is_staff"]
         assert extra_fields["is_superuser"]
@@ -65,9 +67,28 @@ class CustomUser(AbstractUser):
     fcm_token = models.TextField(default="")  # For firebase notifications
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+    age = models.IntegerField(null=True, blank=True)  # Store age directly in the database, for user_type 3 only
     USERNAME_FIELD = "email"
     REQUIRED_FIELDS = []
     objects = CustomUserManager()
+
+    def calculate_age(self):
+        """ Calculate and return the current age based on the date of birth (dob) """
+        if self.dob:
+            today = date.today()
+            age = today.year - self.dob.year
+            if today.month < self.dob.month or (today.month == self.dob.month and today.day < self.dob.day):
+                age -= 1
+            return age
+        return None
+
+    def save(self, *args, **kwargs):
+        """ Only update age if user_type is 3 and the year has changed """
+        if self.user_type == "3":
+            current_age = self.calculate_age()
+            if self.age != current_age:  # Update the age only if it has changed
+                self.age = current_age
+        super().save(*args, **kwargs)
 
     def __str__(self):
         # If user_type is "3" (User), return first and last name
@@ -80,3 +101,28 @@ class CustomUser(AbstractUser):
 
         # Default return: email if other conditions are not met
         return self.email or "No Email"
+
+class BloodRequest(models.Model):
+    STATUS_CHOICES = (
+        ('pending', 'Pending'),
+        ('processing', 'Processing'),
+        ('completed', 'Completed'),
+    )
+    
+    admin = models.ForeignKey(CustomUser, on_delete=models.CASCADE, limit_choices_to={'user_type': "1"})
+    blood_group = models.CharField(max_length=4, choices=CustomUser.BLOOD_GROUPS)
+    location = models.CharField(max_length=255)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
+    created_at = models.DateTimeField(auto_now_add=True)
+
+class DonorResponse(models.Model):
+    donor = models.ForeignKey(CustomUser, on_delete=models.CASCADE, limit_choices_to={'user_type': "3"})
+    blood_request = models.ForeignKey(BloodRequest, on_delete=models.CASCADE, related_name="responses")
+    is_accepted = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+class AcceptedDonor(models.Model):
+    blood_request = models.ForeignKey(BloodRequest, on_delete=models.CASCADE)
+    donor = models.ForeignKey(CustomUser, on_delete=models.CASCADE, limit_choices_to={'user_type': "3"})
+    is_donation_completed = models.BooleanField(default=False)
+    updated_at = models.DateTimeField(auto_now=True)
