@@ -2,6 +2,7 @@
 from django.contrib.auth.models import User
 from .models import *
 from django.db.models import Q
+from datetime import date
 
 
 # import requests
@@ -78,6 +79,11 @@ def register_page(request):
                 user.is_approved = True  # Normal users are approved immediately
                 messages.success(request, "Registration successful. Please log in.")
 
+            # Calculate and update age if dob is provided
+            if user.dob:
+                user.age = calculate_age(user.dob)
+                user.save()  # Save the user with updated age
+
             user.save()
             print(user)
             messages.success(request, "Registration successful.")
@@ -119,19 +125,6 @@ def approve_hospital(request, hospital_id):
     return redirect("admin_dashboard")
 
 
-# @login_required
-# @user_passes_test(is_admin)
-# def request_blood(request):
-#     if request.method == "POST":
-#         BloodRequest.objects.create(
-#             admin=request.user,
-#             blood_group=request.POST.get("blood_group"),
-#             location=request.POST.get("location"),
-#         )
-#         messages.success(request, "Blood request created successfully.")
-#         # return redirect("admin_dashboard")
-
-#     return render(request, "admin/blood_requests.html", {"blood_groups": CustomUser.BLOOD_GROUPS})
 
 @login_required
 @user_passes_test(is_admin)
@@ -192,7 +185,10 @@ def update_blood_request_status(request, request_id):
 @login_required
 def home(request):
     if request.user.user_type == "1":
+        updated_count = update_ages()
+        messages.success(request, f"Age updated for {updated_count} users.")
         return redirect("admin_dashboard")
+
     # elif request.user.user_type == "2":
     #     return redirect("hospital_dashboard")  
     # elif request.user.user_type == "3":
@@ -270,12 +266,27 @@ class UserUpdateView(LoginRequiredMixin, UpdateView):
     context_object_name = 'user'
     success_url = reverse_lazy('user_list')
 
+    def form_valid(self, form):
+        response = super().form_valid(form)
+        messages.success(self.request, 'User details updated successfully!')
+        return response
+
+    def form_invalid(self, form):
+        messages.error(self.request, 'There was an error updating the user details.')
+        return super().form_invalid(form)
+
 # View for deleting a user
 class UserDeleteView(LoginRequiredMixin, DeleteView):
     model = CustomUser
     template_name = 'admin/user_confirm_delete.html'
     context_object_name = 'user'
     success_url = reverse_lazy('user_list')
+
+    def delete(self, request, *args, **kwargs):
+        user = self.get_object()
+        user.delete()
+        messages.success(request, 'User deleted successfully!')
+        return redirect(self.success_url)
 
 # Save view (admin can save user updates)
 @staff_member_required
@@ -286,5 +297,38 @@ def save_user(request, pk):
         user.last_name = request.POST.get('last_name')
         user.email = request.POST.get('email')
         user.save()
-        return redirect('user_list')
     return render(request, 'admin/save_user.html', {'user': user})
+
+
+# add user
+@login_required
+@user_passes_test(is_admin)
+def add_user(request):
+    if request.method == 'POST':
+        form = RegisterForm(request.POST, request.FILES)
+        if form.is_valid():
+            user = form.save()  # Save the user
+            messages.success(request, 'User added successfully!')
+            return redirect('user_list')  # Redirect to the user list after success
+        else:
+            messages.error(request, 'There were errors in your form. Please check the details and try again.')
+    else:
+        form = RegisterForm()
+
+    return render(request, 'admin/add_user.html', {'form': form})
+
+
+# Update the age for all users with user_type == "3"
+def update_ages():
+    today = date.today()
+    users = CustomUser.objects.filter(user_type="3", dob__isnull=False)
+    updated_count = 0
+
+    for user in users:
+        new_age = user.calculate_age()  # Access the calculate_age method from the user instance
+        if user.age != new_age:
+            user.age = new_age
+            user.save(update_fields=["age"])  # Update the age field only
+            updated_count += 1
+
+    return updated_count

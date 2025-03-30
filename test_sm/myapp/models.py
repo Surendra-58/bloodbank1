@@ -5,6 +5,11 @@ from django.contrib.auth.models import AbstractUser
 from datetime import date
 
 
+# from django.contrib.auth import get_user_model
+# from django.db.models.signals import post_save
+# from django.dispatch import receiver
+
+
 
 
 
@@ -73,20 +78,20 @@ class CustomUser(AbstractUser):
     objects = CustomUserManager()
 
     def calculate_age(self):
-        """ Calculate and return the current age based on the date of birth (dob) """
+        """Calculate and return the current age based on date of birth (dob)."""
         if self.dob:
             today = date.today()
             age = today.year - self.dob.year
-            if today.month < self.dob.month or (today.month == self.dob.month and today.day < self.dob.day):
+            if (today.month, today.day) < (self.dob.month, self.dob.day):
                 age -= 1
             return age
         return None
 
     def save(self, *args, **kwargs):
-        """ Only update age if user_type is 3 and the year has changed """
-        if self.user_type == "3":
+        """Ensure age updates on user save if the user_type is '3'."""
+        if self.dob and self.user_type == "3":
             current_age = self.calculate_age()
-            if self.age != current_age:  # Update the age only if it has changed
+            if self.age != current_age:
                 self.age = current_age
         super().save(*args, **kwargs)
 

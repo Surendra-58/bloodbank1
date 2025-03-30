@@ -2,6 +2,13 @@
 
 {% block content %}
     <h2 class="text-center mb-4">User List</h2>
+    {% if messages %}
+    <div class="alert alert-info">
+        {% for message in messages %}
+            <p>{{ message }}</p>
+        {% endfor %}
+    </div>
+    {% endif %}
 
         <!-- Search Form -->
     <form method="GET" action="{% url 'user_list' %}" class="mb-3">

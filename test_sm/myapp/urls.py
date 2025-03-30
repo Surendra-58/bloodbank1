@@ -16,6 +16,7 @@ urlpatterns = [
     path('manage-requests/', views.manage_blood_requests, name='manage_blood_requests'),
     path('update-request-status/<int:request_id>/', views.update_blood_request_status, name='update_blood_request_status'),
     path("pending-hospitals/", views.pending_hospitals, name="pending_hospitals"),
+    path('add_user/', views.add_user, name='add_user'),
 
     path('userlist/', views.UserListView.as_view(), name='user_list'),
     path('update/<int:pk>/', views.UserUpdateView.as_view(), name='user_update'),

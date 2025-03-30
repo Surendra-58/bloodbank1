@@ -1,0 +1,135 @@
+{% extends 'admin/admin_base.html' %}
+
+{% block content %}
+    <h2>Add User</h2>
+
+    {% if messages %}
+        <div class="alert alert-info">
+            {% for message in messages %}
+                <p>{{ message }}</p>
+            {% endfor %}
+        </div>
+    {% endif %}
+
+    <form method="post" enctype="multipart/form-data">
+        {% csrf_token %}
+        
+        <!-- Display all form errors at the top -->
+        {% if form.errors %}
+            <div class="alert alert-danger">
+                <ul>
+                    {% for field in form %}
+                        {% for error in field.errors %}
+                            <li>{{ error }}</li>
+                        {% endfor %}
+                    {% endfor %}
+                </ul>
+            </div>
+        {% endif %}
+        
+        <!-- Form fields -->
+        <div class="container">
+            <div class="row">
+                <!-- Left Column (Basic Info) -->
+                <div class="col-md-6">
+                    <div class="form-group mb-3">
+                        <label for="{{ form.user_type.id_for_label }}">{{ form.user_type.label }}</label>
+                        {{ form.user_type }}
+                    </div>
+
+                    <div class="form-group mb-3">
+                        <label for="{{ form.email.id_for_label }}">{{ form.email.label }}</label>
+                        {{ form.email }}
+                    </div>
+
+                    <div class="form-group mb-3">
+                        <label for="{{ form.address.id_for_label }}">{{ form.address.label }}</label>
+                        {{ form.address }}
+                    </div>
+
+                    <div class="form-group mb-3">
+                        <label for="{{ form.contact_number.id_for_label }}">{{ form.contact_number.label }}</label>
+                        {{ form.contact_number }}
+                    </div>
+
+                    <div class="form-group mb-3">
+                        <label for="{{ form.profile_pic.id_for_label }}">{{ form.profile_pic.label }}</label>
+                        {{ form.profile_pic }}
+                    </div>
+                    <div class="form-group mb-3">
+                        <label for="{{ form.identity.id_for_label }}">{{ form.identity.label }}</label>
+                        {{ form.identity }}
+                        <br>
+                        <small id="identity-message" style="color: gray;"></small>
+                    </div>
+                    <div class="form-group mb-3">
+                        <label for="{{ form.password.id_for_label }}">{{ form.password.label }}</label>
+                        {{ form.password }}
+                    </div>
+
+                    <div class="form-group mb-3">
+                        <label for="{{ form.confirm_password.id_for_label }}">{{ form.confirm_password.label }}</label>
+                        {{ form.confirm_password }}
+                    </div>
+
+
+                </div>
+
+                <!-- Right Column (User-Specific and Hospital-Specific Fields) -->
+                <div class="col-md-6">
+                    <!-- User Fields (Visible for Regular User) -->
+                    <div id="user-fields">
+                        <div class="form-group mb-3">
+                            <label for="{{ form.blood_group.id_for_label }}">{{ form.blood_group.label }}</label>
+                            {{ form.blood_group }}
+                        </div>
+
+                        <div class="form-group mb-3">
+                            <label for="{{ form.dob.id_for_label }}">{{ form.dob.label }}</label>
+                            {{ form.dob }}
+                        </div>
+
+                        <div class="form-group mb-3">
+                            <label for="{{ form.gender.id_for_label }}">{{ form.gender.label }}</label>
+                            {{ form.gender }}
+                        </div>
+
+                        <div class="form-group mb-3">
+                            <label for="{{ form.first_name.id_for_label }}">{{ form.first_name.label }}</label>
+                            {{ form.first_name }}
+                        </div>
+
+                        <div class="form-group mb-3">
+                            <label for="{{ form.last_name.id_for_label }}">{{ form.last_name.label }}</label>
+                            {{ form.last_name }}
+                        </div>
+
+
+
+                        </div>
+
+                    <!-- Hospital Fields (Visible for Hospitals) -->
+                    <div id="organization-fields" style="display: none;">
+                        <div class="form-group mb-3">
+                            <label for="{{ form.organization_name.id_for_label }}">{{ form.organization_name.label }}</label>
+                            {{ form.organization_name }}
+                        </div>
+
+
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="form-group text-center mt-3">
+            <button type="submit" class="btn btn-primary btn-lg">Save User</button>
+        </div>
+    </form>
+
+    <style>
+        .form-group {
+            margin-bottom: 1rem; /* Add space between form fields */
+        }
+    </style>
+{% endblock %}
