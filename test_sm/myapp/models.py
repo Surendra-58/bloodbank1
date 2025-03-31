@@ -124,7 +124,9 @@ class DonorResponse(models.Model):
     donor = models.ForeignKey(CustomUser, on_delete=models.CASCADE, limit_choices_to={'user_type': "3"})
     blood_request = models.ForeignKey(BloodRequest, on_delete=models.CASCADE, related_name="responses")
     is_accepted = models.BooleanField(default=False)
+    is_deleted = models.BooleanField(default=False)  # Add is_deleted field
     created_at = models.DateTimeField(auto_now_add=True)
+
 
 class AcceptedDonor(models.Model):
     blood_request = models.ForeignKey(BloodRequest, on_delete=models.CASCADE)

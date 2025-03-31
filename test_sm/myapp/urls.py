@@ -27,6 +27,16 @@ urlpatterns = [
     path('save/<int:pk>/', views.save_user, name='save_user'),
     path('user/<int:pk>/', views.UserDetailView.as_view(), name='user_detail'),
 
+    #admin blood request
+    path('admin/blood-requests/', views.admin_blood_requests, name='admin_blood_requests'),
+    path('admin/blood-request/<int:request_id>/', views.view_blood_request, name='view_blood_request'),
+    path('admin/blood-request/delete/<int:request_id>/', views.delete_blood_request, name='delete_blood_request'),
+    path('admin/donor-response/delete/<int:response_id>/', views.delete_donor_response, name='delete_donor_response'),
+
+    # Donor
+    path('donor/dashboard/', views.donor_dashboard, name='donor_dashboard'),  
+    path('donor/available-requests/', views.available_blood_requests, name='available_blood_requests'),  
+    path('donor/response/<int:request_id>/', views.donor_response, name='donor_response'), 
 
  ]
 

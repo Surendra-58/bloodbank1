@@ -1,0 +1,30 @@
+{% extends 'admin/admin_base.html' %}
+
+{% block content %}
+    <h2>Accepted Donors for Blood Request</h2>
+
+    <h3>Blood Group: {{ blood_request.blood_group }}</h3>
+    <p>Location: {{ blood_request.location }}</p>
+    <p>Created At: {{ blood_request.created_at }}</p>
+
+    <h3>Accepted Donors</h3>
+    {% if approved_donors %}
+        <ul>
+            {% for donor_response in approved_donors %}
+                <li>
+                    <p>Name: {{ donor_response.donor.first_name }} {{ donor_response.donor.last_name }}</p>
+                    <p>Email: {{ donor_response.donor.email }}</p>
+                    <p>Accepted At: {{ donor_response.created_at }}</p>
+
+                    <!-- Delete donor response -->
+                    <form method="POST" action="{% url 'delete_donor_response' donor_response.id %}" style="display:inline;">
+                        {% csrf_token %}
+                        <button type="submit" onclick="return confirm('Are you sure you want to delete this donor response?')">Delete</button>
+                    </form>
+                </li>
+            {% endfor %}
+        </ul>
+    {% else %}
+        <p>No accepted donors for this request yet.</p>
+    {% endif %}
+{% endblock %}

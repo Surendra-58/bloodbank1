@@ -107,6 +107,24 @@ def logout_page(request):
 def is_admin(user):
     return user.is_authenticated and user.user_type == "1"
 
+def is_donor(user):
+    return user.is_authenticated and user.user_type == "3"
+
+@login_required
+def home(request):
+    if request.user.user_type == "1":
+        updated_count = update_ages()
+        messages.success(request, f"Age updated for {updated_count} users.")
+        return redirect("admin_dashboard")
+
+    # elif request.user.user_type == "2":
+    #     return redirect("hospital_dashboard")  
+    elif request.user.user_type == "3":
+        return redirect("donor_dashboard")  
+    else:
+        messages.error(request, "Invalid user type.")
+        return redirect("login")  # Redirect to login if user type is unknown
+
 @login_required
 @user_passes_test(is_admin)
 def admin_dashboard(request):
@@ -114,6 +132,11 @@ def admin_dashboard(request):
     blood_requests = BloodRequest.objects.all()
     context = {"hospitals": hospitals, "blood_requests": blood_requests}
     return render(request, "admin/admin_dashboard.html", context)
+
+@login_required
+@user_passes_test(is_donor)
+def donor_dashboard(request):
+    return render(request, "donor/donor_dashboard.html")
 
 @login_required
 @user_passes_test(is_admin)
@@ -126,38 +149,6 @@ def approve_hospital(request, hospital_id):
 
 
 
-@login_required
-@user_passes_test(is_admin)
-def request_blood(request):
-    if request.method == "POST":
-        blood_group = request.POST.get("blood_group")
-        location = request.POST.get("location")
-
-        # Create the BloodRequest object
-        blood_request = BloodRequest.objects.create(
-            admin=request.user,
-            blood_group=blood_group,
-            location=location,
-        )
-
-        # Send notifications to eligible donors (age between 18 and 50, user_type=3, and matching blood group)
-        eligible_donors = CustomUser.objects.filter(
-            user_type="3",  # User type = 3 (donors)
-            blood_group=blood_group,  # Blood group must match
-            age__gte=18,  # Age greater than or equal to 18
-            age__lte=50  # Age less than or equal to 50
-        )
-
-        # Send notifications to each eligible donor
-        for donor in eligible_donors:
-            # Assuming you have a notification system in place (e.g., Firebase)
-            # Example: send_notification(donor.fcm_token, "New Blood Request", f"A new blood request for {blood_group} blood is available.")
-            print(f"Notification sent to {donor.email} for blood group {blood_group}")
-
-        messages.success(request, "Blood request created successfully and sent to eligible donors.")
-        return redirect("admin_dashboard")
-
-    return render(request, "admin/blood_requests.html", {"blood_groups": CustomUser.BLOOD_GROUPS})
 
 @login_required
 @user_passes_test(is_admin)
@@ -178,24 +169,6 @@ def update_blood_request_status(request, request_id):
     messages.success(request, "Blood request status updated successfully.")
     return redirect("manage_blood_requests")
 
-
-
-
-
-@login_required
-def home(request):
-    if request.user.user_type == "1":
-        updated_count = update_ages()
-        messages.success(request, f"Age updated for {updated_count} users.")
-        return redirect("admin_dashboard")
-
-    # elif request.user.user_type == "2":
-    #     return redirect("hospital_dashboard")  
-    # elif request.user.user_type == "3":
-    #     return redirect("donor_dashboard")  
-    else:
-        messages.error(request, "Invalid user type.")
-        return redirect("login")  # Redirect to login if user type is unknown
 
 # Admin Dashboard
 @login_required
@@ -308,6 +281,10 @@ def add_user(request):
         form = RegisterForm(request.POST, request.FILES)
         if form.is_valid():
             user = form.save()  # Save the user
+                        # If user type is donor (user_type = 3), set is_accepted to True for their response
+            if user.user_type == "3":  # User is a donor
+                # Create DonorResponse for the user and set is_accepted=True
+                DonorResponse.objects.create(donor=user, is_accepted=True)
             messages.success(request, 'User added successfully!')
             return redirect('user_list')  # Redirect to the user list after success
         else:
@@ -332,3 +309,129 @@ def update_ages():
             updated_count += 1
 
     return updated_count
+
+@login_required
+@user_passes_test(is_admin)
+def request_blood(request):
+    if request.method == "POST":
+        blood_group = request.POST.get("blood_group")
+        location = request.POST.get("location")
+
+        # Create the BloodRequest object
+        blood_request = BloodRequest.objects.create(
+            admin=request.user,
+            blood_group=blood_group,
+            location=location,
+        )
+
+        # Send notifications to eligible donors (age between 18 and 50, user_type=3, and matching blood group)
+        eligible_donors = CustomUser.objects.filter(
+            user_type="3",  # User type = 3 (donors)
+            blood_group=blood_group,  # Blood group must match
+            age__gte=18,  # Age greater than or equal to 18
+            age__lte=50  # Age less than or equal to 50
+        )
+
+        # Send notifications to each eligible donor
+        for donor in eligible_donors:
+            # Assuming you have a notification system in place (e.g., Firebase)
+            # Example: send_notification(donor.fcm_token, "New Blood Request", f"A new blood request for {blood_group} blood is available.")
+            print(f"Notification sent to {donor.email} for blood group {blood_group}")
+
+        messages.success(request, "Blood request created successfully and sent to eligible donors.")
+        return redirect("admin_dashboard")
+
+    return render(request, "admin/blood_requests.html", {"blood_groups": CustomUser.BLOOD_GROUPS})
+
+@login_required
+@user_passes_test(is_admin)
+def admin_blood_requests(request):
+    # List all blood requests created by the admin (newest first)
+    blood_requests = BloodRequest.objects.filter(admin=request.user).order_by('-created_at')
+
+    return render(request, 'admin/admin_blood_requests.html', {'blood_requests': blood_requests})
+
+
+@login_required
+@user_passes_test(is_admin)
+def view_blood_request(request, request_id):
+    # Get the specific blood request
+    blood_request = get_object_or_404(BloodRequest, id=request_id, admin=request.user)
+    
+    # Get all accepted donors for this request (sorted newest first)
+    approved_donors = DonorResponse.objects.filter(blood_request=blood_request, is_accepted=True).order_by('-created_at')
+
+    return render(request, 'admin/view_blood_request.html', {
+        'blood_request': blood_request,
+        'approved_donors': approved_donors
+    })
+
+
+@login_required
+@user_passes_test(is_admin)
+def delete_blood_request(request, request_id):
+    # Delete a blood request
+    blood_request = get_object_or_404(BloodRequest, id=request_id, admin=request.user)
+    blood_request.delete()
+    
+    messages.success(request, "Blood request deleted successfully.")
+    return redirect('admin_blood_requests')
+
+
+@login_required
+@user_passes_test(is_admin)
+def delete_donor_response(request, response_id):
+    # Delete a donor response from the approved list
+    donor_response = get_object_or_404(DonorResponse, id=response_id, is_accepted=True)
+    donor_response.delete()
+    
+    messages.success(request, "Donor response deleted successfully.")
+    return redirect('view_blood_request', request_id=donor_response.blood_request.id)
+
+@login_required
+@user_passes_test(is_donor)
+def donor_response(request, blood_request_id):
+    blood_request = get_object_or_404(BloodRequest, id=blood_request_id)
+
+    if request.method == "POST":
+        action = request.POST.get('action')
+
+        if action == 'accept':
+            DonorResponse.objects.create(
+                donor=request.user,
+                blood_request=blood_request,
+                is_accepted=True
+            )
+            messages.success(request, "You have accepted the blood request.")
+        
+        elif action == 'reject':
+            DonorResponse.objects.create(
+                donor=request.user,
+                blood_request=blood_request,
+                is_accepted=False,
+                is_deleted=True  # Mark as deleted if rejected
+            )
+            messages.success(request, "You have rejected the blood request.")
+        
+        return redirect("donor_dashboard")
+
+    return render(request, "donor/blood_request_detail.html", {"blood_request": blood_request})
+
+@login_required
+@user_passes_test(is_donor)
+def available_blood_requests(request):
+    # Get blood requests where:
+    # 1. The donor has not accepted or rejected them (is_accepted=False, is_deleted=False)
+    # 2. The blood group matches the donor's blood group
+    available_requests = BloodRequest.objects.filter(
+        responses__donor=request.user,
+        responses__is_accepted=False,
+        responses__is_deleted=False,
+        blood_group=request.user.blood_group
+    ).exclude(
+        responses__donor=request.user
+    )
+
+    return render(request, "donor/available_blood_requests.html", {
+        "available_requests": available_requests
+    })

@@ -1,0 +1,27 @@
+{% extends 'donor/donor_base.html' %}
+
+{% block content %}
+    <h2>Available Blood Requests</h2>
+
+    {% if available_requests %}
+        <ul>
+            {% for request in available_requests %}
+                <li>
+                    <h3>Blood Group: {{ request.blood_group }}</h3>
+                    <p>Location: {{ request.location }}</p>
+                    <p>Created At: {{ request.created_at }}</p>
+
+                    <!-- The form to accept or reject the blood request -->
+                    <form method="POST" action="{% url 'donor_response' request.id %}">
+                        {% csrf_token %}
+                        <button type="submit" name="action" value="accept">Accept</button>
+                        <button type="submit" name="action" value="reject">Reject</button>
+                    </form>
+                </li>
+            {% endfor %}
+        </ul>
+    {% else %}
+        <p>No available requests at the moment.</p>
+    {% endif %}
+{% endblock %}
+
