@@ -396,7 +396,8 @@ def donor_response(request, request_id):
             DonorResponse.objects.create(
                 donor=request.user,
                 blood_request=blood_request,
-                is_accepted=True
+                is_accepted=True,
+                is_deleted=False
             )
             messages.success(request, "You have accepted the blood request.")
         
@@ -413,15 +414,18 @@ def donor_response(request, request_id):
 
     return render(request, "donor/blood_request_detail.html", {"blood_request": blood_request})
 
+
 @login_required
 @user_passes_test(is_donor)
 def available_blood_requests(request):
     available_requests = BloodRequest.objects.filter(
         blood_group=request.user.blood_group
     ).exclude(
-        responses__donor=request.user,  # Exclude requests where the donor has already responded
-        responses__is_accepted=True,  # Exclude accepted requests
-        responses__is_deleted=True  # Exclude deleted requests
+        responses__donor=request.user,
+        responses__is_accepted=True
+    ).exclude(
+        responses__donor=request.user,
+        responses__is_deleted=True
     )
 
     return render(request, "donor/available_blood_requests.html", {

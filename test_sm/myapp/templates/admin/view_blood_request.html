@@ -1,30 +1,54 @@
 {% extends 'admin/admin_base.html' %}
 
 {% block content %}
-    <h2>Accepted Donors for Blood Request</h2>
+    <div class="container mt-4">
+        <h2 class="mb-3">Accepted Donors for Blood Request</h2>
 
-    <h3>Blood Group: {{ blood_request.blood_group }}</h3>
-    <p>Location: {{ blood_request.location }}</p>
-    <p>Created At: {{ blood_request.created_at }}</p>
+        <div class="card mb-3">
+            <div class="card-body">
+                <h4 class="card-title">Blood Group: {{ blood_request.blood_group }}</h4>
+                <p class="card-text"><strong>Location:</strong> {{ blood_request.location }}</p>
+                <p class="card-text"><strong>Created At:</strong> {{ blood_request.created_at }}</p>
+            </div>
+        </div>
 
-    <h3>Accepted Donors</h3>
-    {% if approved_donors %}
-        <ul>
-            {% for donor_response in approved_donors %}
-                <li>
-                    <p>Name: {{ donor_response.donor.first_name }} {{ donor_response.donor.last_name }}</p>
-                    <p>Email: {{ donor_response.donor.email }}</p>
-                    <p>Accepted At: {{ donor_response.created_at }}</p>
+        <h3 class="mb-3">Accepted Donors</h3>
 
-                    <!-- Delete donor response -->
-                    <form method="POST" action="{% url 'delete_donor_response' donor_response.id %}" style="display:inline;">
-                        {% csrf_token %}
-                        <button type="submit" onclick="return confirm('Are you sure you want to delete this donor response?')">Delete</button>
-                    </form>
-                </li>
-            {% endfor %}
-        </ul>
-    {% else %}
-        <p>No accepted donors for this request yet.</p>
-    {% endif %}
+        {% if approved_donors %}
+            <div class="table-responsive">
+                <table class="table table-striped table-bordered">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>Name</th>
+                            <th>Email</th>
+                            <th>Accepted At</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for donor_response in approved_donors %}
+                            <tr>
+                                <td>{{ donor_response.donor.first_name }} {{ donor_response.donor.last_name }}</td>
+                                <td>{{ donor_response.donor.email }}</td>
+                                <td>{{ donor_response.created_at }}</td>
+                                <td>
+                                    <form method="POST" action="{% url 'delete_donor_response' donor_response.id %}" class="d-inline">
+                                        {% csrf_token %}
+                                        <button type="submit" class="btn btn-danger btn-sm"
+                                                onclick="return confirm('Are you sure you want to delete this donor response?')">
+                                            Delete
+                                        </button>
+                                    </form>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% else %}
+            <div class="alert alert-warning" role="alert">
+                No accepted donors for this request yet.
+            </div>
+        {% endif %}
+    </div>
 {% endblock %}
