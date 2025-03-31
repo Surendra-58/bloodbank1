@@ -81,7 +81,7 @@ def register_page(request):
 
             # Calculate and update age if dob is provided
             if user.dob:
-                user.age = calculate_age(user.dob)
+                user.age = user.calculate_age()
                 user.save()  # Save the user with updated age
 
             user.save()
@@ -281,10 +281,6 @@ def add_user(request):
         form = RegisterForm(request.POST, request.FILES)
         if form.is_valid():
             user = form.save()  # Save the user
-                        # If user type is donor (user_type = 3), set is_accepted to True for their response
-            if user.user_type == "3":  # User is a donor
-                # Create DonorResponse for the user and set is_accepted=True
-                DonorResponse.objects.create(donor=user, is_accepted=True)
             messages.success(request, 'User added successfully!')
             return redirect('user_list')  # Redirect to the user list after success
         else:
@@ -390,8 +386,8 @@ def delete_donor_response(request, response_id):
 
 @login_required
 @user_passes_test(is_donor)
-def donor_response(request, blood_request_id):
-    blood_request = get_object_or_404(BloodRequest, id=blood_request_id)
+def donor_response(request, request_id):
+    blood_request = get_object_or_404(BloodRequest, id=request_id)
 
     if request.method == "POST":
         action = request.POST.get('action')
@@ -420,18 +416,15 @@ def donor_response(request, blood_request_id):
 @login_required
 @user_passes_test(is_donor)
 def available_blood_requests(request):
-    # Get blood requests where:
-    # 1. The donor has not accepted or rejected them (is_accepted=False, is_deleted=False)
-    # 2. The blood group matches the donor's blood group
     available_requests = BloodRequest.objects.filter(
-        responses__donor=request.user,
-        responses__is_accepted=False,
-        responses__is_deleted=False,
         blood_group=request.user.blood_group
     ).exclude(
-        responses__donor=request.user
+        responses__donor=request.user,  # Exclude requests where the donor has already responded
+        responses__is_accepted=True,  # Exclude accepted requests
+        responses__is_deleted=True  # Exclude deleted requests
     )
 
     return render(request, "donor/available_blood_requests.html", {
         "available_requests": available_requests
     })
+

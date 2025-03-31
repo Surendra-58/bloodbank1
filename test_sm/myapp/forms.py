@@ -172,6 +172,8 @@ class RegisterForm(forms.ModelForm):
             user.organization_name = self.cleaned_data.get("organization_name")
             user.is_staff = True  # Mark hospitals as staff
             user.identity = self.cleaned_data.get("identity")
+            # Encrypt the password before saving
+        user.set_password(self.cleaned_data.get("password"))
 
         if commit:
             user.save()
