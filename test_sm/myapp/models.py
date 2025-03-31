@@ -4,6 +4,8 @@ from django.db import models
 from django.contrib.auth.models import AbstractUser
 from datetime import date
 
+from django.db.models import Q
+
 
 # from django.contrib.auth import get_user_model
 # from django.db.models.signals import post_save
@@ -73,6 +75,8 @@ class CustomUser(AbstractUser):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     age = models.IntegerField(null=True, blank=True)  # Store age directly in the database, for user_type 3 only
+        # New field to track the number of times a donor has donated
+    donation_count = models.IntegerField(default=0)
     USERNAME_FIELD = "email"
     REQUIRED_FIELDS = []
     objects = CustomUserManager()
@@ -125,8 +129,33 @@ class DonorResponse(models.Model):
     blood_request = models.ForeignKey(BloodRequest, on_delete=models.CASCADE, related_name="responses")
     is_accepted = models.BooleanField(default=False)
     is_deleted = models.BooleanField(default=False)  # Add is_deleted field
+    is_select = models.BooleanField(default=False)  # Added field to track selection
     created_at = models.DateTimeField(auto_now_add=True)
+    def save(self, *args, **kwargs):
+        super().save(*args, **kwargs)
+        
+        # If any DonorResponse is accepted, update the BloodRequest status to 'processing'
+        if self.is_accepted:
+            self.blood_request.status = "processing"
+            self.blood_request.save()
 
+
+class BloodDonationHistory(models.Model):
+    donor = models.ForeignKey(CustomUser, on_delete=models.CASCADE, limit_choices_to={'user_type': "3"})
+    blood_group = models.CharField(max_length=4, choices=CustomUser.BLOOD_GROUPS)
+    blood_unit_donated = models.FloatField()
+    donation_date = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.donor.username} - {self.blood_group} - {self.donation_date}"
+
+class BloodInventory(models.Model):
+    admin = models.ForeignKey(CustomUser, on_delete=models.CASCADE, limit_choices_to={'user_type': "1"})
+    blood_group = models.CharField(max_length=4, choices=CustomUser.BLOOD_GROUPS)
+    available_units = models.FloatField()
+
+    def __str__(self):
+        return f"{self.admin.username} - {self.blood_group} - {self.available_units} units"
 
 class AcceptedDonor(models.Model):
     blood_request = models.ForeignKey(BloodRequest, on_delete=models.CASCADE)
