@@ -31,8 +31,9 @@ urlpatterns = [
     path('admin/blood-requests/', views.admin_blood_requests, name='admin_blood_requests'),
     path('admin/blood-request/<int:request_id>/', views.view_blood_request, name='view_blood_request'),
     path('admin/blood-request/delete/<int:request_id>/', views.delete_blood_request, name='delete_blood_request'),
-    path('admin/donor-response/delete/<int:response_id>/', views.delete_donor_response, name='delete_donor_response'),
+    # path('admin/donor-response/delete/<int:response_id>/', views.delete_donor_response, name='delete_donor_response'),
     path('select-donor/<int:response_id>/', views.select_donor, name='select_donor'),
+    path("unselect-donor/<int:response_id>/", views.unselect_donor, name="unselect_donor"),
     path('save_blood_donation/<int:response_id>/', views.save_blood_donation, name='save_blood_donation'),
 
 

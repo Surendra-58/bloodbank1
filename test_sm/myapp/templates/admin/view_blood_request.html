@@ -13,7 +13,7 @@
         </div>
 
         <!-- Selected Donors Table -->
-        <h3 class="mb-3">Selected Donors (is_select = True)</h3>
+        <h3 class="mb-3">Selected Donors</h3>
 
         {% if selected_donors %}
             <div class="table-responsive">
@@ -33,16 +33,16 @@
                                 <td>{{ donor_response.donor.email }}</td>
                                 <td>{{ donor_response.created_at }}</td>
                                 <td>
-                                    <form method="POST" action="{% url 'delete_donor_response' donor_response.id %}" class="d-inline">
-                                        {% csrf_token %}
-                                        <button type="submit" class="btn btn-danger btn-sm"
-                                                onclick="return confirm('Are you sure you want to delete this donor response?')">
-                                            Delete
-                                        </button>
-                                    </form>
+       
                                     <a href="{% url 'save_blood_donation' donor_response.id %}" class="btn btn-primary btn-sm">
                                         Save Donation
                                     </a>
+                                    <form method="POST" action="{% url 'unselect_donor' donor_response.id %}" class="d-inline ms-1">
+                                        {% csrf_token %}
+                                        <button type="submit" class="btn btn-danger btn-sm">
+                                            Unselect
+                                        </button>
+                                    </form>
                                 </td>
                             </tr>
                         {% endfor %}
@@ -56,7 +56,7 @@
         {% endif %}
 
         <!-- Unselected Donors Table -->
-        <h3 class="mb-3">Unselected Donors (is_select = False)</h3>
+        <h3 class="mb-3">Unselected Donors</h3>
 
         {% if unselected_donors %}
             <div class="table-responsive">
@@ -76,13 +76,8 @@
                                 <td>{{ donor_response.donor.email }}</td>
                                 <td>{{ donor_response.created_at }}</td>
                                 <td>
-                                    <form method="POST" action="{% url 'delete_donor_response' donor_response.id %}" class="d-inline">
-                                        {% csrf_token %}
-                                        <button type="submit" class="btn btn-danger btn-sm"
-                                                onclick="return confirm('Are you sure you want to delete this donor response?')">
-                                            Delete
-                                        </button>
-                                    </form>
+
+
                                     <form method="POST" action="{% url 'select_donor' donor_response.id %}" class="d-inline">
                                         {% csrf_token %}
                                         <button type="submit" class="btn btn-success btn-sm">

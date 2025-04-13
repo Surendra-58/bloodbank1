@@ -23,7 +23,7 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 
 
 
-from .models import CustomUser, BloodRequest, DonorResponse, AcceptedDonor
+from .models import CustomUser, BloodRequest, DonorResponse 
 
 
 #forms
@@ -152,26 +152,6 @@ def approve_hospital(request, hospital_id):
     return redirect("admin_dashboard")
 
 
-
-
-@login_required
-@user_passes_test(is_admin)
-def manage_blood_requests(request):
-    blood_requests = BloodRequest.objects.all()
-    context = {"blood_requests": blood_requests}
-    return render(request, "admin/manage_requests.html", context)
-
-@login_required
-@user_passes_test(is_admin)
-def update_blood_request_status(request, request_id):
-    blood_request = get_object_or_404(BloodRequest, id=request_id)
-    if blood_request.status == "pending":
-        blood_request.status = "processing"
-    elif blood_request.status == "processing":
-        blood_request.status = "completed"
-    blood_request.save()
-    messages.success(request, "Blood request status updated successfully.")
-    return redirect("manage_blood_requests")
 
 
 # Admin Dashboard
@@ -343,21 +323,26 @@ def request_blood(request):
 
     return render(request, "admin/blood_requests.html", {"blood_groups": CustomUser.BLOOD_GROUPS})
 
+@login_required
+@user_passes_test(is_admin)
+def manage_blood_requests(request):
+    blood_requests = BloodRequest.objects.all()
+    context = {"blood_requests": blood_requests}
+    return render(request, "admin/manage_requests.html", context)
+
+@login_required
+@user_passes_test(is_admin)
+def update_blood_request_status(request, request_id):
+    blood_request = get_object_or_404(BloodRequest, id=request_id)
+    if blood_request.status == "pending":
+        blood_request.status = "processing"
+    elif blood_request.status == "processing":
+        blood_request.status = "completed"
+    blood_request.save()
+    messages.success(request, "Blood request status updated successfully.")
+    return redirect("manage_blood_requests")
 
 
-# @login_required
-# @user_passes_test(is_admin)
-# def view_blood_request(request, request_id):
-#     # Get the specific blood request
-#     blood_request = get_object_or_404(BloodRequest, id=request_id, admin=request.user)
-    
-#     # Get all accepted donors for this request (sorted newest first)
-#     approved_donors = DonorResponse.objects.filter(blood_request=blood_request, is_accepted=True).order_by('-created_at')
-
-#     return render(request, 'admin/view_blood_request.html', {
-#         'blood_request': blood_request,
-#         'approved_donors': approved_donors
-#     })
 
 
 @login_required
@@ -370,16 +355,6 @@ def delete_blood_request(request, request_id):
     messages.success(request, "Blood request deleted successfully.")
     return redirect('admin_blood_requests')
 
-
-@login_required
-@user_passes_test(is_admin)
-def delete_donor_response(request, response_id):
-    # Delete a donor response from the approved list
-    donor_response = get_object_or_404(DonorResponse, id=response_id, is_accepted=True)
-    donor_response.delete()
-    
-    messages.success(request, "Donor response deleted successfully.")
-    return redirect('view_blood_request', request_id=donor_response.blood_request.id)
 
 @login_required
 @user_passes_test(is_donor)
@@ -423,86 +398,15 @@ def available_blood_requests(request):
     ).exclude(
         responses__donor=request.user,
         responses__is_deleted=True
+    ).exclude(
+        responses__donor=request.user,
+        responses__is_saved=True 
     )
 
     return render(request, "donor/available_blood_requests.html", {
         "available_requests": available_requests
     })
 
-
-# @login_required
-# @user_passes_test(is_admin)
-# def save_blood_donation(request, response_id):
-#     donor_response = DonorResponse.objects.get(id=response_id)
-#     if request.method == "POST":
-#         blood_unit_donated = request.POST['blood_unit_donated']
-#         blood_group = donor_response.blood_request.blood_group
-        
-#         # Create Blood Donation History
-#         donation = BloodDonationHistory.objects.create(
-#             donor=donor_response.donor,
-#             blood_group=blood_group,
-#             blood_unit_donated=blood_unit_donated
-#         )
-        
-#         # Update Inventory
-#         try:
-#             inventory = BloodInventory.objects.get(admin=donor_response.blood_request.admin, blood_group=blood_group)
-#             inventory.available_units += float(blood_unit_donated)
-#             inventory.save()
-#         except BloodInventory.DoesNotExist:
-#             # Create new inventory entry if it doesn't exist
-#             BloodInventory.objects.create(
-#                 admin=donor_response.blood_request.admin,
-#                 blood_group=blood_group,
-#                 available_units=float(blood_unit_donated)
-#             )
-        
-#         # Redirect to a success page (or another relevant page)
-#         return redirect('view_blood_request', request_id=donor_response.blood_request.id)  # Replace with actual page name
-
-#     return render(request, 'admin/blood_donation_form.html', {'donor_response': donor_response})
-
-# @login_required
-# @user_passes_test(is_admin)
-# def save_blood_donation(request, response_id):
-#     donor_response = DonorResponse.objects.get(id=response_id)
-
-#     if request.method == "POST":
-#         blood_unit_donated = request.POST['blood_unit_donated']
-#         blood_group = donor_response.blood_request.blood_group
-
-#         # Create Blood Donation History
-#         BloodDonationHistory.objects.create(
-#             donor=donor_response.donor,
-#             blood_group=blood_group,
-#             blood_unit_donated=blood_unit_donated
-#         )
-
-#         # Update the donor's donation count
-#         donor = donor_response.donor
-#         donor.donation_count += 1  # Increment the count
-#         donor.save()
-
-#         # Update Blood Inventory
-#         try:
-#             inventory = BloodInventory.objects.get(admin=donor_response.blood_request.admin, blood_group=blood_group)
-#             inventory.available_units += float(blood_unit_donated)
-#             inventory.save()
-#         except BloodInventory.DoesNotExist:
-#             BloodInventory.objects.create(
-#                 admin=donor_response.blood_request.admin,
-#                 blood_group=blood_group,
-#                 available_units=float(blood_unit_donated)
-#             )
-
-#         # Remove the donor from the request list after donation
-#         donor_response.delete()
-
-#         # Redirect to the blood request details page
-#         return redirect('view_blood_request', request_id=donor_response.blood_request.id)
-
-#     return render(request, 'admin/blood_donation_form.html', {'donor_response': donor_response})
 
 
 
@@ -538,7 +442,10 @@ def save_blood_donation(request, response_id):
             inventory.save()
 
             # Remove donor from list
-            donor_response.delete()
+            # donor_response.delete()
+            # Mark the response as saved instead of deleting
+            donor_response.is_saved = True
+            donor_response.save()
 
             # Redirect
             return redirect('view_blood_request', request_id=donor_response.blood_request.id)
@@ -580,7 +487,8 @@ def view_blood_request(request, request_id):
     selected_donors = DonorResponse.objects.filter(
         blood_request=blood_request, 
         is_accepted=True, 
-        is_select=True
+        is_select=True,
+        is_saved=False
     ).order_by('-created_at')
 
     unselected_donors = DonorResponse.objects.filter(
@@ -608,6 +516,17 @@ def select_donor(request, response_id):
         return redirect('view_blood_request', request_id=donor_response.blood_request.id)  # Redirect back to the blood request page
 
     return redirect('admin_blood_requests')  # Fallback redirection
+
+@login_required
+@user_passes_test(is_admin)
+def unselect_donor(request, response_id):
+    if request.method == "POST":
+        donor_response = get_object_or_404(DonorResponse, id=response_id)
+        donor_response.is_select = False  # Mark as unselected
+        donor_response.save()
+        messages.success(request, "Donor has been unselected.")
+        return redirect('view_blood_request', request_id=donor_response.blood_request.id)
+
 
 
 # view for blood inventory

@@ -31,7 +31,7 @@ class CustomUserManager(UserManager):
     def create_superuser(self, email, password=None, **extra_fields):
         extra_fields.setdefault("is_staff", True)
         extra_fields.setdefault("is_superuser", True)
-        extra_fields.setdefault("user_type", "Admin")
+        extra_fields.setdefault("user_type", "1")
 
         assert extra_fields["is_staff"]
         assert extra_fields["is_superuser"]
@@ -60,7 +60,7 @@ class CustomUser(AbstractUser):
     username = None  # Removed username, using email instead
     email = models.EmailField(unique=True)
     is_approved = models.BooleanField(default=False)  # New field for staff approval
-    user_type = models.CharField(default=3, choices=USER_TYPE, max_length=3)
+    user_type = models.CharField(default="3", choices=USER_TYPE, max_length=3)
     gender = models.CharField(max_length=1, choices=GENDER,null=True,blank=True)
     profile_pic = models.ImageField(null=True, blank=True)
     dob = models.DateField(null=True, blank=True)
@@ -130,6 +130,7 @@ class DonorResponse(models.Model):
     is_accepted = models.BooleanField(default=False)
     is_deleted = models.BooleanField(default=False)  # Add is_deleted field
     is_select = models.BooleanField(default=False)  # Added field to track selection
+    is_saved = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
     def save(self, *args, **kwargs):
         super().save(*args, **kwargs)
@@ -157,8 +158,8 @@ class BloodInventory(models.Model):
     def __str__(self):
         return f"{self.admin.username} - {self.blood_group} - {self.available_units} units"
 
-class AcceptedDonor(models.Model):
-    blood_request = models.ForeignKey(BloodRequest, on_delete=models.CASCADE)
-    donor = models.ForeignKey(CustomUser, on_delete=models.CASCADE, limit_choices_to={'user_type': "3"})
-    is_donation_completed = models.BooleanField(default=False)
-    updated_at = models.DateTimeField(auto_now=True)
+# class AcceptedDonor(models.Model):
+#     blood_request = models.ForeignKey(BloodRequest, on_delete=models.CASCADE)
+#     donor = models.ForeignKey(CustomUser, on_delete=models.CASCADE, limit_choices_to={'user_type': "3"})
+#     is_donation_completed = models.BooleanField(default=False)
+#     updated_at = models.DateTimeField(auto_now=True)
