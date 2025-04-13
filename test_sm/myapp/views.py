@@ -129,13 +129,18 @@ def home(request):
         messages.error(request, "Invalid user type.")
         return redirect("login")  # Redirect to login if user type is unknown
 
+# @login_required
+# @user_passes_test(is_admin)
+# def admin_dashboard(request):
+#     hospitals = CustomUser.objects.filter(user_type="2", is_approved=False)
+#     blood_requests = BloodRequest.objects.all()
+#     context = {"hospitals": hospitals, "blood_requests": blood_requests}
+#     return render(request, "admin/admin_dashboard.html", context)
+
 @login_required
 @user_passes_test(is_admin)
 def admin_dashboard(request):
-    hospitals = CustomUser.objects.filter(user_type="2", is_approved=False)
-    blood_requests = BloodRequest.objects.all()
-    context = {"hospitals": hospitals, "blood_requests": blood_requests}
-    return render(request, "admin/admin_dashboard.html", context)
+    return render(request, "admin/admin_dashboard.html")
 
 @login_required
 @user_passes_test(is_donor)
@@ -154,13 +159,6 @@ def approve_hospital(request, hospital_id):
 
 
 
-# Admin Dashboard
-@login_required
-@user_passes_test(is_admin)
-def admin_dashboard(request):
-    hospitals = CustomUser.objects.filter(user_type="2", is_approved=False)
-    blood_requests = BloodRequest.objects.all()
-    return render(request, "admin/admin_dashboard.html", {"hospitals": hospitals, "blood_requests": blood_requests})
 
 
 @login_required
@@ -292,6 +290,90 @@ def update_ages():
 
 @login_required
 @user_passes_test(is_admin)
+def blood_inventory(request):
+    """View and ensure all blood inventory records exist for the admin."""
+    blood_groups = ["A+", "A-", "B+", "B-", "O+", "O-", "AB+", "AB-"]
+    
+    # Ensure all blood groups exist in inventory for the logged-in admin
+    for bg in blood_groups:
+        BloodInventory.objects.get_or_create(admin=request.user, blood_group=bg, defaults={'available_units': 0})
+    
+    # Fetch inventory for the logged-in admin
+    inventory = BloodInventory.objects.filter(admin=request.user)
+    
+    return render(request, 'admin/blood_inventory.html', {'inventory': inventory})
+
+
+
+@login_required
+@user_passes_test(is_admin)
+def add_blood_units(request, inventory_id):
+    """Add blood units to inventory."""
+    inventory = get_object_or_404(BloodInventory, id=inventory_id, admin=request.user)
+
+    if request.method == "POST":
+        units_to_add = float(request.POST['units'])
+        inventory.available_units += units_to_add
+        inventory.save()
+        messages.success(request, f"Added {units_to_add} units to {inventory.blood_group} inventory.")
+        return redirect('blood_inventory')
+
+    return render(request, 'admin/add_blood_units.html', {'inventory': inventory})
+
+@login_required
+@user_passes_test(is_admin)
+def subtract_blood_units(request, inventory_id):
+    """Subtract blood units from inventory."""
+    inventory = get_object_or_404(BloodInventory, id=inventory_id, admin=request.user)
+
+    if request.method == "POST":
+        units_to_subtract = float(request.POST['units'])
+        
+        if units_to_subtract > inventory.available_units:
+            messages.error(request, "Not enough units available to subtract.")
+        else:
+            inventory.available_units -= units_to_subtract
+            inventory.save()
+            messages.success(request, f"Subtracted {units_to_subtract} units from {inventory.blood_group} inventory.")
+
+        return redirect('blood_inventory')
+
+    return render(request, 'admin/subtract_blood_units.html', {'inventory': inventory})
+
+@login_required
+@user_passes_test(is_admin)
+def update_blood_inventory(request, inventory_id):
+    """Update blood inventory record."""
+    inventory = get_object_or_404(BloodInventory, id=inventory_id, admin=request.user)
+
+    if request.method == "POST":
+        new_units = float(request.POST['units'])
+        inventory.available_units = new_units
+        inventory.save()
+        messages.success(request, f"Updated {inventory.blood_group} inventory to {new_units} units.")
+        return redirect('blood_inventory')
+
+    return render(request, 'admin/update_blood_inventory.html', {'inventory': inventory})
+
+
+
+@login_required
+@user_passes_test(is_admin)
+def clear_blood_inventory(request, inventory_id):
+    """Clear the available units (set to 0) for a given blood group."""
+    inventory = get_object_or_404(BloodInventory, id=inventory_id, admin=request.user)
+    
+    if request.method == "POST":
+        inventory.available_units = 0
+        inventory.save()
+        messages.success(request, f"Cleared all units for the {inventory.blood_group} blood group.")
+        return redirect('blood_inventory')
+    
+    return redirect('admin/blood_inventory', {'inventory': inventory})  # In case of a non-POST request
+
+
+@login_required
+@user_passes_test(is_admin)
 def request_blood(request):
     if request.method == "POST":
         blood_group = request.POST.get("blood_group")
@@ -323,25 +405,6 @@ def request_blood(request):
 
     return render(request, "admin/blood_requests.html", {"blood_groups": CustomUser.BLOOD_GROUPS})
 
-@login_required
-@user_passes_test(is_admin)
-def manage_blood_requests(request):
-    blood_requests = BloodRequest.objects.all()
-    context = {"blood_requests": blood_requests}
-    return render(request, "admin/manage_requests.html", context)
-
-@login_required
-@user_passes_test(is_admin)
-def update_blood_request_status(request, request_id):
-    blood_request = get_object_or_404(BloodRequest, id=request_id)
-    if blood_request.status == "pending":
-        blood_request.status = "processing"
-    elif blood_request.status == "processing":
-        blood_request.status = "completed"
-    blood_request.save()
-    messages.success(request, "Blood request status updated successfully.")
-    return redirect("manage_blood_requests")
-
 
 
 
@@ -356,6 +419,36 @@ def delete_blood_request(request, request_id):
     return redirect('admin_blood_requests')
 
 
+# @login_required
+# @user_passes_test(is_donor)
+# def donor_response(request, request_id):
+#     blood_request = get_object_or_404(BloodRequest, id=request_id)
+
+#     if request.method == "POST":
+#         action = request.POST.get('action')
+
+#         if action == 'accept':
+#             DonorResponse.objects.create(
+#                 donor=request.user,
+#                 blood_request=blood_request,
+#                 is_accepted=True,
+#                 is_deleted=False
+#             )
+#             messages.success(request, "You have accepted the blood request.")
+        
+#         elif action == 'reject':
+#             DonorResponse.objects.create(
+#                 donor=request.user,
+#                 blood_request=blood_request,
+#                 is_accepted=False,
+#                 is_deleted=True  # Mark as deleted if rejected
+#             )
+#             messages.success(request, "You have rejected the blood request.")
+        
+#         return redirect("donor_dashboard")
+
+#     return render(request, "donor/blood_request_detail.html", {"blood_request": blood_request})
+
 @login_required
 @user_passes_test(is_donor)
 def donor_response(request, request_id):
@@ -365,26 +458,62 @@ def donor_response(request, request_id):
         action = request.POST.get('action')
 
         if action == 'accept':
-            DonorResponse.objects.create(
-                donor=request.user,
-                blood_request=blood_request,
-                is_accepted=True,
-                is_deleted=False
-            )
-            messages.success(request, "You have accepted the blood request.")
+            weight = request.POST.get("weight")
+            height_str = request.POST.get("height")
+
+            if not weight or not height_str:
+                messages.error(request, "Weight and height are required to accept the request.")
+                return redirect("donor_dashboard")
+
+            try:
+                weight = float(weight)
+                
+                # Split the height input into feet and inches
+                feet, inches_part = height_str.split('.')
+                feet = int(feet)
+                inches_part = float(inches_part)  # Use the decimal as inches part
+                
+                # Convert the height into inches
+                total_height_in_inches = feet * 12 + inches_part
+                
+                # Convert inches to meters
+                height_in_meters = total_height_in_inches * 0.0254
+
+                # Calculate BMI
+                bmi = weight / (height_in_meters ** 2)
+            except Exception:
+                messages.error(request, "Invalid height or weight input.")
+                return redirect("donor_dashboard")
+
+            # Display BMI with healthy range message
+            if bmi < 18.5:
+                messages.warning(request, f"Your BMI is {bmi:.2f}, which indicates you are underweight. You cannot accept this blood request. The healthy BMI range is between 18.5 and 24.9.")
+                return redirect("donor_dashboard")
+            elif bmi > 24.9:
+                messages.warning(request, f"Your BMI is {bmi:.2f}, which indicates you are overweight. You cannot accept this blood request. The healthy BMI range is between 18.5 and 24.9.")
+                return redirect("donor_dashboard")
+            else:
+                DonorResponse.objects.create(
+                    donor=request.user,
+                    blood_request=blood_request,
+                    is_accepted=True,
+                    is_deleted=False
+                )
+                messages.success(request, f"Your BMI is {bmi:.2f}, which is healthy! You have accepted the blood request.")
         
         elif action == 'reject':
             DonorResponse.objects.create(
                 donor=request.user,
                 blood_request=blood_request,
                 is_accepted=False,
-                is_deleted=True  # Mark as deleted if rejected
+                is_deleted=True
             )
             messages.success(request, "You have rejected the blood request.")
-        
+
         return redirect("donor_dashboard")
 
     return render(request, "donor/blood_request_detail.html", {"blood_request": blood_request})
+
 
 
 @login_required
@@ -529,109 +658,10 @@ def unselect_donor(request, response_id):
 
 
 
-# view for blood inventory
-# @login_required
-# @user_passes_test(is_admin)
-# def blood_inventory(request):
-#     """View all blood inventory records."""
-#     inventory = BloodInventory.objects.filter(admin=request.user)
-#     return render(request, 'admin/blood_inventory.html', {'inventory': inventory})
-@login_required
-@user_passes_test(is_admin)
-def blood_inventory(request):
-    """View and ensure all blood inventory records exist for the admin."""
-    blood_groups = ["A+", "A-", "B+", "B-", "O+", "O-", "AB+", "AB-"]
-    
-    # Ensure all blood groups exist in inventory for the logged-in admin
-    for bg in blood_groups:
-        BloodInventory.objects.get_or_create(admin=request.user, blood_group=bg, defaults={'available_units': 0})
-    
-    # Fetch inventory for the logged-in admin
-    inventory = BloodInventory.objects.filter(admin=request.user)
-    
-    return render(request, 'admin/blood_inventory.html', {'inventory': inventory})
-
-@login_required
-@user_passes_test(is_admin)
-def add_blood_units(request, inventory_id):
-    """Add blood units to inventory."""
-    inventory = get_object_or_404(BloodInventory, id=inventory_id, admin=request.user)
-
-    if request.method == "POST":
-        units_to_add = float(request.POST['units'])
-        inventory.available_units += units_to_add
-        inventory.save()
-        messages.success(request, f"Added {units_to_add} units to {inventory.blood_group} inventory.")
-        return redirect('blood_inventory')
-
-    return render(request, 'admin/add_blood_units.html', {'inventory': inventory})
-
-@login_required
-@user_passes_test(is_admin)
-def subtract_blood_units(request, inventory_id):
-    """Subtract blood units from inventory."""
-    inventory = get_object_or_404(BloodInventory, id=inventory_id, admin=request.user)
-
-    if request.method == "POST":
-        units_to_subtract = float(request.POST['units'])
-        
-        if units_to_subtract > inventory.available_units:
-            messages.error(request, "Not enough units available to subtract.")
-        else:
-            inventory.available_units -= units_to_subtract
-            inventory.save()
-            messages.success(request, f"Subtracted {units_to_subtract} units from {inventory.blood_group} inventory.")
-
-        return redirect('blood_inventory')
-
-    return render(request, 'admin/subtract_blood_units.html', {'inventory': inventory})
-
-@login_required
-@user_passes_test(is_admin)
-def update_blood_inventory(request, inventory_id):
-    """Update blood inventory record."""
-    inventory = get_object_or_404(BloodInventory, id=inventory_id, admin=request.user)
-
-    if request.method == "POST":
-        new_units = float(request.POST['units'])
-        inventory.available_units = new_units
-        inventory.save()
-        messages.success(request, f"Updated {inventory.blood_group} inventory to {new_units} units.")
-        return redirect('blood_inventory')
-
-    return render(request, 'admin/update_blood_inventory.html', {'inventory': inventory})
 
 
 
-@login_required
-@user_passes_test(is_admin)
-def clear_blood_inventory(request, inventory_id):
-    """Clear the available units (set to 0) for a given blood group."""
-    inventory = get_object_or_404(BloodInventory, id=inventory_id, admin=request.user)
-    
-    if request.method == "POST":
-        inventory.available_units = 0
-        inventory.save()
-        messages.success(request, f"Cleared all units for the {inventory.blood_group} blood group.")
-        return redirect('blood_inventory')
-    
-    return redirect('admin/blood_inventory', {'inventory': inventory})  # In case of a non-POST request
 
-
-# @login_required
-# @user_passes_test(is_admin)
-# def admin_blood_requests(request):
-#     blood_requests = BloodRequest.objects.filter(admin=request.user).order_by('-created_at')
-
-#     # Get responses based on is_select status
-#     selected_donors = DonorResponse.objects.filter(is_select=True, is_deleted=False)
-#     unselected_donors = DonorResponse.objects.filter(is_select=False, is_deleted=False)
-
-#     return render(
-#         request,
-#         'admin/admin_blood_requests.html',
-#         {'blood_requests': blood_requests, 'selected_donors': selected_donors, 'unselected_donors': unselected_donors}
-#     )
 
 # @login_required
 # @user_passes_test(is_admin)

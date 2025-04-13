@@ -11,6 +11,8 @@ from django.db.models import Q
 # from django.db.models.signals import post_save
 # from django.dispatch import receiver
 
+from django.core.validators import MinValueValidator
+
 
 
 
@@ -157,6 +159,8 @@ class BloodInventory(models.Model):
 
     def __str__(self):
         return f"{self.admin.username} - {self.blood_group} - {self.available_units} units"
+
+
 
 # class AcceptedDonor(models.Model):
 #     blood_request = models.ForeignKey(BloodRequest, on_delete=models.CASCADE)

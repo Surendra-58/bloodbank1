@@ -13,8 +13,8 @@ urlpatterns = [
     path('adminn/', views.admin_dashboard, name='admin_dashboard'),
     path('approve-hospital/<int:hospital_id>/', views.approve_hospital, name='approve_hospital'),
     path('request-blood/', views.request_blood, name='request_blood'),
-    path('manage-requests/', views.manage_blood_requests, name='manage_blood_requests'),
-    path('update-request-status/<int:request_id>/', views.update_blood_request_status, name='update_blood_request_status'),
+    # path('manage-requests/', views.manage_blood_requests, name='manage_blood_requests'),
+    # path('update-request-status/<int:request_id>/', views.update_blood_request_status, name='update_blood_request_status'),
     path("pending-hospitals/", views.pending_hospitals, name="pending_hospitals"),
     path('add_user/', views.add_user, name='add_user'),
 
