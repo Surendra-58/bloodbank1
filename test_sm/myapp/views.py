@@ -3,6 +3,7 @@ from django.contrib.auth.models import User
 from .models import *
 from django.db.models import Q
 from datetime import date
+from datetime import datetime
 from django.db import transaction
 from django.db.models import F
 # F('donation_count') + 1 updates the donation_count directly in the database.
@@ -24,7 +25,8 @@ from django.contrib.auth.views import PasswordChangeView
 from django.contrib.auth import update_session_auth_hash
 from django.contrib.auth.forms import PasswordChangeForm
 from django.contrib.auth import views as auth_views
-from .forms import CustomPasswordChangeForm
+
+from .forms import AdminProfileUpdateForm, CustomPasswordChangeForm, HospitalProfileUpdateForm
 
 
 
@@ -119,6 +121,9 @@ def is_admin(user):
 def is_donor(user):
     return user.is_authenticated and user.user_type == "3"
 
+def is_hospital(user):
+    return user.is_authenticated and user.user_type == "2"
+
 @login_required
 def home(request):
     if request.user.user_type == "1":
@@ -126,26 +131,24 @@ def home(request):
         messages.success(request, f"Age updated for {updated_count} users.")
         return redirect("admin_dashboard")
 
-    # elif request.user.user_type == "2":
-    #     return redirect("hospital_dashboard")  
+    elif request.user.user_type == "2":
+        return redirect("hospital_dashboard")  
     elif request.user.user_type == "3":
         return redirect("donor_dashboard")  
     else:
         messages.error(request, "Invalid user type.")
         return redirect("login")  # Redirect to login if user type is unknown
 
-# @login_required
-# @user_passes_test(is_admin)
-# def admin_dashboard(request):
-#     hospitals = CustomUser.objects.filter(user_type="2", is_approved=False)
-#     blood_requests = BloodRequest.objects.all()
-#     context = {"hospitals": hospitals, "blood_requests": blood_requests}
-#     return render(request, "admin/admin_dashboard.html", context)
 
 @login_required
 @user_passes_test(is_admin)
 def admin_dashboard(request):
     return render(request, "admin/admin_dashboard.html")
+
+@login_required
+@user_passes_test(is_hospital)
+def hospital_dashboard(request):
+    return render(request, "hospital/hospital_dashboard.html")
 
 @login_required
 @user_passes_test(is_donor)
@@ -424,35 +427,6 @@ def delete_blood_request(request, request_id):
     return redirect('admin_blood_requests')
 
 
-# @login_required
-# @user_passes_test(is_donor)
-# def donor_response(request, request_id):
-#     blood_request = get_object_or_404(BloodRequest, id=request_id)
-
-#     if request.method == "POST":
-#         action = request.POST.get('action')
-
-#         if action == 'accept':
-#             DonorResponse.objects.create(
-#                 donor=request.user,
-#                 blood_request=blood_request,
-#                 is_accepted=True,
-#                 is_deleted=False
-#             )
-#             messages.success(request, "You have accepted the blood request.")
-        
-#         elif action == 'reject':
-#             DonorResponse.objects.create(
-#                 donor=request.user,
-#                 blood_request=blood_request,
-#                 is_accepted=False,
-#                 is_deleted=True  # Mark as deleted if rejected
-#             )
-#             messages.success(request, "You have rejected the blood request.")
-        
-#         return redirect("donor_dashboard")
-
-#     return render(request, "donor/blood_request_detail.html", {"blood_request": blood_request})
 
 @login_required
 @user_passes_test(is_donor)
@@ -752,20 +726,6 @@ def unselect_donor(request, response_id):
 
 
 
-# def custom_password_change(request):
-#     if request.method == 'POST':
-#         form = CustomPasswordChangeForm(user=request.user, data=request.POST)
-#         if form.is_valid():
-#             form.save()
-#             update_session_auth_hash(request, form.user)  # Keep the user logged in after password change
-#             messages.success(request, 'Your password has been changed successfully!')
-#             return redirect('donor_profile')  # Or wherever you want to redirect after success
-#         else:
-#             messages.error(request, 'Please correct the error below.')
-#     else:
-#         form = CustomPasswordChangeForm(user=request.user)
-
-#     return render(request, 'donor/password_change_modal.html', {'form': form})
 def custom_password_change(request):
     if request.method == 'POST':
         form = CustomPasswordChangeForm(user=request.user, data=request.POST)
@@ -799,39 +759,6 @@ def donor_profile(request):
         'donation_count': user.donation_count,
     }
     return render(request, 'donor/profile_summary.html', context)
-
-
-# @login_required
-# @user_passes_test(is_donor)
-# def donor_profile_detail(request):
-#     """Shows all donor information and full blood donation history."""
-#     user = request.user
-#     donation_history = BloodDonationHistory.objects.filter(donor=user)
-
-#     donation_data = []
-#     for donation in donation_history:
-#         # Find matching response for this blood group and user
-#         response = DonorResponse.objects.filter(
-#             donor=user,
-#             blood_request__blood_group=donation.blood_group,
-#             is_accepted=True,
-#             blood_request__status='completed'
-#         ).first()
-
-#         location = response.blood_request.location if response else "N/A"
-
-#         donation_data.append({
-#             'blood_group': donation.blood_group,
-#             'unit': donation.blood_unit_donated,
-#             'location': location,
-#             'donated_at': donation.donation_date,
-#         })
-
-#     context = {
-#         'user': user,
-#         'donation_data': donation_data
-#     }
-#     return render(request, 'donor/profile_detail.html', context)
 
 @login_required
 @user_passes_test(is_donor)
@@ -895,6 +822,123 @@ def update_donor_profile(request):
         'blood_groups': CustomUser.BLOOD_GROUPS,
     }
     return render(request, 'donor/update_profile.html', context)
+
+
+# Your custom admin check
+def is_admin(user):
+    return user.is_authenticated and user.user_type == "1"
+
+@login_required
+@user_passes_test(is_admin)
+def admin_profile(request):
+    user = request.user
+    context = {
+        'user': user
+    }
+    return render(request, 'admin/profile_summary.html', context)
+
+@login_required
+@user_passes_test(is_admin)
+def admin_profile_update(request):
+    user = request.user
+    if request.method == 'POST':
+        form = AdminProfileUpdateForm(request.POST, request.FILES, instance=user)
+        if form.is_valid():
+            form.save()
+            messages.success(request, '✅ Profile updated successfully.')
+            return redirect('admin_profile')
+        else:
+            messages.error(request, '❌ Please correct the errors below.')
+    else:
+        form = AdminProfileUpdateForm(instance=user)
+
+    return render(request, 'admin/profile_update.html', {'form': form})
+
+@login_required
+@user_passes_test(is_admin)
+def admin_password_change(request):
+    if request.method == 'POST':
+        form = CustomPasswordChangeForm(user=request.user, data=request.POST)
+        if form.is_valid():
+            form.save()
+            update_session_auth_hash(request, form.user)
+            messages.success(request, '✅ Your password has been changed successfully.')
+            return redirect('admin_profile')
+        else:
+            if 'old_password' in form.errors:
+                messages.error(request, '❌ Invalid old password.')
+            if 'new_password2' in form.errors:
+                messages.error(request, '❌ New passwords do not match.')
+            if 'new_password1' in form.errors:
+                messages.error(request, '❌ ' + form.errors['new_password1'][0])
+    else:
+        form = CustomPasswordChangeForm(user=request.user)
+
+    return render(request, 'admin/change_password.html', {'form': form})
+
+
+    #Hospital
+
+@login_required
+@user_passes_test(is_hospital)
+def hospital_profile(request):
+    hospital = request.user
+    context = {
+        'hospital': hospital
+    }
+    return render(request, 'hospital/profile_summary.html', context)
+
+@login_required
+@user_passes_test(is_hospital)
+def hospital_profile_detail(request):
+    hospital = request.user
+    context = {
+        'hospital': hospital
+    }
+    return render(request, 'hospital/profile_detail.html', context)
+
+@login_required
+@user_passes_test(is_hospital)
+def hospital_profile_update(request):
+    user = request.user
+    if request.method == 'POST':
+        form = HospitalProfileUpdateForm(request.POST, request.FILES, instance=user)
+        if form.is_valid():
+            form.save()
+            messages.success(request, '✅ Profile updated successfully.')
+            return redirect('hospital_profile')
+        else:
+            messages.error(request, '❌ Please correct the errors below.')
+    else:
+        form = HospitalProfileUpdateForm(instance=user)
+
+    return render(request, 'hospital/profile_update.html', {'form': form})
+
+@login_required
+@user_passes_test(is_hospital)
+def hospital_password_change(request):
+    if request.method == 'POST':
+        form = CustomPasswordChangeForm(user=request.user, data=request.POST)
+        if form.is_valid():
+            form.save()
+            update_session_auth_hash(request, form.user)
+            messages.success(request, '✅ Your password has been changed successfully.')
+            return redirect('hospital_profile')
+        else:
+            if 'old_password' in form.errors:
+                messages.error(request, '❌ Invalid old password.')
+            if 'new_password2' in form.errors:
+                messages.error(request, '❌ New passwords do not match.')
+            if 'new_password1' in form.errors:
+                messages.error(request, '❌ ' + form.errors['new_password1'][0])
+    else:
+        form = CustomPasswordChangeForm(user=request.user)
+
+    return render(request, 'hospital/change_password.html', {'form': form})
+
+
+
+
 
 
 

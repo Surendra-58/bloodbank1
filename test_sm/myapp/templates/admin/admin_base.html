@@ -19,11 +19,13 @@
                         <a class="nav-link" href="{% url 'admin_dashboard' %}">Dashboard</a>
                     </li>
                     <li class="nav-item">
+                        <a class="nav-link" href="{% url 'admin_profile' %}">Profile</a>
+                    </li>
+                    <li class="nav-item">
                         <a class="nav-link" href="{% url 'pending_hospitals' %}">Pending Approvals</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="{% url 'request_blood' %}">Blood Requests</a
-                        >
+                        <a class="nav-link" href="{% url 'request_blood' %}">Blood Requests</a>    
                     </li>
                     <li class="nav-item">
                         <a class="nav-link" href="{% url 'user_list' %}">User List</a> <!-- Added link to User List -->
@@ -37,6 +39,22 @@
             </div>
         </div>
     </nav>
+        {% if messages %}
+        <div class="d-flex flex-column align-items-center">
+            {% for message in messages %}
+                <div class="alert alert-dismissible fade show custom-alert 
+                    {% if message.tags == 'success' %}alert-success
+                    {% elif message.tags == 'error' %}alert-danger
+                    {% elif message.tags == 'warning' %}alert-warning
+                    {% else %}alert-info{% endif %}" role="alert">
+                    
+                    {{ message }}
+
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            {% endfor %}
+        </div>
+    {% endif %}
     <div class="container mt-4">
         {% block content %}
         {% endblock %}

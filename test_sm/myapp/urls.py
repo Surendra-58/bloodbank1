@@ -56,8 +56,18 @@ urlpatterns = [
     path('donor/profile/', views.donor_profile, name='donor_profile'),
     path('donor/profile/detail/', views.donor_profile_detail, name='donor_profile_detail'),
     path('donor/profile/update/', views.update_donor_profile, name='donor_profile_update'),
-
-
     path('password_change/', views.custom_password_change, name='password_change'),
+
+    path('admin/profile/', views.admin_profile, name='admin_profile'),
+    path('admin/profile/update/', views.admin_profile_update, name='admin_profile_update'),
+    path('admin/password/change/', views.admin_password_change, name='admin_password_change'),
+
+
+    path('hospital/dashboard/', views.hospital_dashboard, name='hospital_dashboard'),
+    path('hospital/profile/', views.hospital_profile, name='hospital_profile'),
+    path('hospital/profile/detail/', views.hospital_profile_detail, name='hospital_profile_detail'),
+    path('hospital/profile/update/', views.hospital_profile_update, name='hospital_profile_update'),
+    path('hospital/profile/change-password/', views.hospital_password_change, name='hospital_password_change'),
+
  ]
 

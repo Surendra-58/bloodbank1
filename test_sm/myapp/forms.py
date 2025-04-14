@@ -196,5 +196,32 @@ class CustomPasswordChangeForm(PasswordChangeForm):
         widget=forms.PasswordInput(attrs={'class': 'form-control', 'placeholder': 'Confirm New Password'}),
         label='Confirm New Password'
     )
+
+class AdminProfileUpdateForm(forms.ModelForm):
+    class Meta:
+        model = CustomUser
+        fields = ['profile_pic', 'first_name', 'last_name', 'email', 'contact_number', 'address', 'dob']
+        widgets = {
+            'dob': forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
+            'contact_number': forms.TextInput(attrs={'class': 'form-control'}),
+            'address': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
+            'email': forms.EmailInput(attrs={'class': 'form-control'}),
+            'first_name': forms.TextInput(attrs={'class': 'form-control'}),
+            'last_name': forms.TextInput(attrs={'class': 'form-control'}),
+        }
+
+
+class HospitalProfileUpdateForm(forms.ModelForm):
+    class Meta:
+        model = CustomUser
+        fields = ['organization_name', 'email', 'contact_number', 'address','profile_pic', 'identity']
+        widgets = {
+            'organization_name': forms.TextInput(attrs={'class': 'form-control'}),
+            'email': forms.EmailInput(attrs={'class': 'form-control'}),
+            'contact_number': forms.TextInput(attrs={'class': 'form-control'}),
+            'address': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
+        }
+
+
         
 
