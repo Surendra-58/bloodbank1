@@ -1,5 +1,7 @@
 from django.urls import path
 from . import views
+from .views import donor_profile, custom_password_change
+from django.contrib.auth import views as auth_views
 
 
 # app_name = 'myapp'  # Set app_name as 'myapp'
@@ -50,5 +52,12 @@ urlpatterns = [
     path('admin/blood-inventory/clear/<int:inventory_id>/', views.clear_blood_inventory, name='clear_blood_inventory'),
 
 
+
+    path('donor/profile/', views.donor_profile, name='donor_profile'),
+    path('donor/profile/detail/', views.donor_profile_detail, name='donor_profile_detail'),
+    path('donor/profile/update/', views.update_donor_profile, name='donor_profile_update'),
+
+
+    path('password_change/', views.custom_password_change, name='password_change'),
  ]
 

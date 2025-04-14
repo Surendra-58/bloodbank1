@@ -20,6 +20,11 @@ from django.views.generic import ListView, UpdateView, DeleteView, DetailView
 from django.urls import reverse_lazy
 from django.contrib.admin.views.decorators import staff_member_required
 from django.contrib.auth.mixins import LoginRequiredMixin
+from django.contrib.auth.views import PasswordChangeView
+from django.contrib.auth import update_session_auth_hash
+from django.contrib.auth.forms import PasswordChangeForm
+from django.contrib.auth import views as auth_views
+from .forms import CustomPasswordChangeForm
 
 
 
@@ -539,6 +544,88 @@ def available_blood_requests(request):
 
 
 
+# @login_required
+# @user_passes_test(is_admin)
+# def save_blood_donation(request, response_id):
+#     with transaction.atomic():
+#         donor_response = DonorResponse.objects.get(id=response_id)
+
+#         if request.method == "POST":
+#             blood_unit_donated = request.POST['blood_unit_donated']
+#             blood_group = donor_response.blood_request.blood_group
+
+#             # Create Blood Donation History
+#             BloodDonationHistory.objects.create(
+#                 donor=donor_response.donor,
+#                 blood_group=blood_group,
+#                 blood_unit_donated=blood_unit_donated
+#             )
+
+#             # Update donation count
+#             donor = donor_response.donor
+#             donor.donation_count = F('donation_count') + 1  # Atomic update
+#             donor.save()
+
+#             # Update Inventory
+#             inventory, created = BloodInventory.objects.get_or_create(
+#                 admin=donor_response.blood_request.admin,
+#                 blood_group=blood_group,
+#                 defaults={'available_units': 0}
+#             )
+#             inventory.available_units += float(blood_unit_donated)
+#             inventory.save()
+
+#             # Remove donor from list
+#             # donor_response.delete()
+#             # Mark the response as saved instead of deleting
+#             donor_response.is_saved = True
+#             donor_response.save()
+
+#             # Redirect
+#             return redirect('view_blood_request', request_id=donor_response.blood_request.id)
+
+#     return render(request, 'admin/blood_donation_form.html', {'donor_response': donor_response})
+# @login_required
+# @user_passes_test(is_admin)
+# def save_blood_donation(request, response_id):
+#     with transaction.atomic():
+#         donor_response = DonorResponse.objects.get(id=response_id)
+
+#         if request.method == "POST":
+#             blood_unit_donated = request.POST['blood_unit_donated']
+#             blood_group = donor_response.blood_request.blood_group
+#             location = donor_response.blood_request.location  # Get the location from the blood request
+
+#             # Create Blood Donation History, including location
+#             BloodDonationHistory.objects.create(
+#                 donor=donor_response.donor,
+#                 blood_group=blood_group,
+#                 blood_unit_donated=blood_unit_donated,
+#                 location=location  # Save the location of the donation
+#             )
+
+#             # Update donation count
+#             donor = donor_response.donor
+#             donor.donation_count = F('donation_count') + 1  # Atomic update
+#             donor.save()
+
+#             # Update Inventory
+#             inventory, created = BloodInventory.objects.get_or_create(
+#                 admin=donor_response.blood_request.admin,
+#                 blood_group=blood_group,
+#                 defaults={'available_units': 0}
+#             )
+#             inventory.available_units += float(blood_unit_donated)
+#             inventory.save()
+
+#             # Mark the response as saved instead of deleting it
+#             donor_response.is_saved = True
+#             donor_response.save()
+
+#             # Redirect
+#             return redirect('view_blood_request', request_id=donor_response.blood_request.id)
+
+#     return render(request, 'admin/blood_donation_form.html', {'donor_response': donor_response})
 @login_required
 @user_passes_test(is_admin)
 def save_blood_donation(request, response_id):
@@ -548,38 +635,43 @@ def save_blood_donation(request, response_id):
         if request.method == "POST":
             blood_unit_donated = request.POST['blood_unit_donated']
             blood_group = donor_response.blood_request.blood_group
+            location = donor_response.blood_request.location
 
-            # Create Blood Donation History
-            BloodDonationHistory.objects.create(
+            # 🛑 Avoid duplicate history entry
+            history_exists = BloodDonationHistory.objects.filter(
                 donor=donor_response.donor,
                 blood_group=blood_group,
-                blood_unit_donated=blood_unit_donated
-            )
+                location=location
+            ).exists()
 
-            # Update donation count
-            donor = donor_response.donor
-            donor.donation_count = F('donation_count') + 1  # Atomic update
-            donor.save()
+            if not history_exists:
+                BloodDonationHistory.objects.create(
+                    donor=donor_response.donor,
+                    blood_group=blood_group,
+                    blood_unit_donated=blood_unit_donated,
+                    location=location
+                )
 
-            # Update Inventory
-            inventory, created = BloodInventory.objects.get_or_create(
-                admin=donor_response.blood_request.admin,
-                blood_group=blood_group,
-                defaults={'available_units': 0}
-            )
-            inventory.available_units += float(blood_unit_donated)
-            inventory.save()
+                donor = donor_response.donor
+                donor.donation_count = F('donation_count') + 1
+                donor.save()
 
-            # Remove donor from list
-            # donor_response.delete()
-            # Mark the response as saved instead of deleting
+                inventory, created = BloodInventory.objects.get_or_create(
+                    admin=donor_response.blood_request.admin,
+                    blood_group=blood_group,
+                    defaults={'available_units': 0}
+                )
+                inventory.available_units += float(blood_unit_donated)
+                inventory.save()
+
             donor_response.is_saved = True
             donor_response.save()
 
-            # Redirect
             return redirect('view_blood_request', request_id=donor_response.blood_request.id)
 
     return render(request, 'admin/blood_donation_form.html', {'donor_response': donor_response})
+
+
 
 
 @login_required
@@ -660,14 +752,149 @@ def unselect_donor(request, response_id):
 
 
 
+# def custom_password_change(request):
+#     if request.method == 'POST':
+#         form = CustomPasswordChangeForm(user=request.user, data=request.POST)
+#         if form.is_valid():
+#             form.save()
+#             update_session_auth_hash(request, form.user)  # Keep the user logged in after password change
+#             messages.success(request, 'Your password has been changed successfully!')
+#             return redirect('donor_profile')  # Or wherever you want to redirect after success
+#         else:
+#             messages.error(request, 'Please correct the error below.')
+#     else:
+#         form = CustomPasswordChangeForm(user=request.user)
 
+#     return render(request, 'donor/password_change_modal.html', {'form': form})
+def custom_password_change(request):
+    if request.method == 'POST':
+        form = CustomPasswordChangeForm(user=request.user, data=request.POST)
+        if form.is_valid():
+            form.save()
+            update_session_auth_hash(request, form.user)
+            messages.success(request, '✅ Your password has been changed successfully.')
+            return redirect('donor_profile')
+        else:
+            # Add detailed error messages
+            if 'old_password' in form.errors:
+                messages.error(request, '❌ Invalid old password.')
+            if 'new_password2' in form.errors:
+                messages.error(request, '❌ New passwords do not match.')
+            if 'new_password1' in form.errors:
+                messages.error(request, '❌ ' + form.errors['new_password1'][0])  # Show custom validation message
+    else:
+        form = CustomPasswordChangeForm(user=request.user)
+
+    return render(request, 'donor/password_change_modal.html', {'form': form})
+
+
+
+@login_required
+@user_passes_test(is_donor)
+def donor_profile(request):
+    """Shows a summary: profile picture, name, email, total donations, and buttons."""
+    user = request.user
+    context = {
+        'user': user,
+        'donation_count': user.donation_count,
+    }
+    return render(request, 'donor/profile_summary.html', context)
 
 
 # @login_required
-# @user_passes_test(is_admin)
-# def delete_blood_inventory(request, inventory_id):
-#     """Delete a blood inventory record."""
-#     inventory = get_object_or_404(BloodInventory, id=inventory_id, admin=request.user)
-#     inventory.delete()
-#     messages.success(request, f"Deleted {inventory.blood_group} inventory.")
-#     return redirect('blood_inventory')
+# @user_passes_test(is_donor)
+# def donor_profile_detail(request):
+#     """Shows all donor information and full blood donation history."""
+#     user = request.user
+#     donation_history = BloodDonationHistory.objects.filter(donor=user)
+
+#     donation_data = []
+#     for donation in donation_history:
+#         # Find matching response for this blood group and user
+#         response = DonorResponse.objects.filter(
+#             donor=user,
+#             blood_request__blood_group=donation.blood_group,
+#             is_accepted=True,
+#             blood_request__status='completed'
+#         ).first()
+
+#         location = response.blood_request.location if response else "N/A"
+
+#         donation_data.append({
+#             'blood_group': donation.blood_group,
+#             'unit': donation.blood_unit_donated,
+#             'location': location,
+#             'donated_at': donation.donation_date,
+#         })
+
+#     context = {
+#         'user': user,
+#         'donation_data': donation_data
+#     }
+#     return render(request, 'donor/profile_detail.html', context)
+
+@login_required
+@user_passes_test(is_donor)
+def donor_profile_detail(request):
+    """Shows all donor information and full blood donation history."""
+    user = request.user
+    donation_history = BloodDonationHistory.objects.filter(donor=user)
+
+    donation_data = []
+    for donation in donation_history:
+        donation_data.append({
+            'blood_group': donation.blood_group,
+            'unit': donation.blood_unit_donated,
+            'location': donation.location,  # Location now comes from BloodDonationHistory
+            'donated_at': donation.donation_date,  # Fixed the field name
+        })
+
+    context = {
+        'user': user,
+        'donation_data': donation_data
+    }
+    return render(request, 'donor/profile_detail.html', context)
+
+
+
+
+
+@login_required
+def update_donor_profile(request):
+    user = request.user
+
+    if request.method == 'POST':
+        user.first_name = request.POST.get('first_name') or 'N/A'
+        user.last_name = request.POST.get('last_name') or 'N/A'
+        user.email = request.POST.get('email')
+        
+        # Convert dob (date of birth) to a datetime object if it's not empty
+        dob = request.POST.get('dob')
+        if dob:
+            user.dob = datetime.strptime(dob, '%Y-%m-%d').date()  # Convert to date object
+        
+        user.blood_group = request.POST.get('blood_group') or None
+        user.gender = request.POST.get('gender') or None
+        # user.age = request.POST.get('age') or None
+        user.contact_number = request.POST.get('contact_number') or None
+        user.address = request.POST.get('address') or None
+
+        # Handle file uploads
+        if 'profile_pic' in request.FILES:
+            user.profile_pic = request.FILES['profile_pic']
+        if 'identity' in request.FILES:
+            user.identity = request.FILES['identity']
+
+        user.save()
+        messages.success(request, "Your profile has been updated.")
+        return redirect('donor_profile')
+
+    context = {
+        'user': user,
+        'genders': CustomUser.GENDER,
+        'blood_groups': CustomUser.BLOOD_GROUPS,
+    }
+    return render(request, 'donor/update_profile.html', context)
+
+
+

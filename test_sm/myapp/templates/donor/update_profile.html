@@ -1,0 +1,127 @@
+{% extends 'donor/donor_base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="container mt-5">
+    <h2 class="mb-4">Update Profile</h2>
+    <form method="POST" enctype="multipart/form-data" class="row g-3" style="background-color: #f8f9fa; padding: 30px; border-radius: 10px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);">
+        {% csrf_token %}
+
+        <div class="col-md-6">
+            <label class="form-label" style="font-weight: bold;">First Name</label>
+            <input type="text" name="first_name" class="form-control" value="{{ user.first_name }}">
+        </div>
+
+        <div class="col-md-6">
+            <label class="form-label" style="font-weight: bold;">Last Name</label>
+            <input type="text" name="last_name" class="form-control" value="{{ user.last_name }}">
+        </div>
+
+        <div class="col-md-6">
+            <label class="form-label" style="font-weight: bold;">Email</label>
+            <input type="email" name="email" class="form-control" value="{{ user.email }}" required>
+        </div>
+
+        <div class="col-md-6">
+            <label class="form-label" style="font-weight: bold;">Date of Birth</label>
+            <input type="date" name="dob" class="form-control" value="{{ user.dob|date:'Y-m-d' }}">
+        </div>
+
+        <div class="col-md-6">
+            <label class="form-label" style="font-weight: bold;">Gender</label>
+            <select name="gender" class="form-select">
+                <option value="">Select</option>
+                {% for code, label in genders %}
+                    <option value="{{ code }}" {% if user.gender == code %}selected{% endif %}>{{ label }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div class="col-md-6">
+            <label class="form-label" style="font-weight: bold;">Blood Group</label>
+            <select name="blood_group" class="form-select">
+                <option value="">Select</option>
+                {% for code, label in blood_groups %}
+                    <option value="{{ code }}" {% if user.blood_group == code %}selected{% endif %}>{{ label }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div class="col-md-6">
+            <label class="form-label" style="font-weight: bold;">Contact Number</label>
+            <input type="text" name="contact_number" class="form-control" value="{{ user.contact_number }}">
+        </div>
+
+        <div class="col-12">
+            <label class="form-label" style="font-weight: bold;">Address</label>
+            <textarea name="address" class="form-control" rows="3">{{ user.address }}</textarea>
+        </div>
+
+        <div class="col-md-6">
+            <label class="form-label" style="font-weight: bold;">Profile Picture</label><br>
+            {% if user.profile_pic %}
+                <img src="{{ user.profile_pic.url }}" class="img-thumbnail mb-2" width="100">
+            {% endif %}
+            <input type="file" name="profile_pic" class="form-control">
+        </div>
+
+        <div class="col-md-6">
+            <label class="form-label" style="font-weight: bold;">Identity Proof</label><br>
+            {% if user.identity %}
+                <img src="{{ user.identity.url }}" class="img-thumbnail mb-2" width="100">
+            {% endif %}
+            <input type="file" name="identity" class="form-control">
+        </div>
+
+        <div class="col-12">
+            <button type="submit" class="btn btn-warning" style="width: 200px; font-size: 16px; padding: 10px; transition: 0.3s ease-in-out; border-radius: 5px;">Update Profile</button>
+            <a href="{% url 'donor_profile' %}" class="btn btn-secondary" style="width: 200px; font-size: 16px; padding: 10px; transition: 0.3s ease-in-out; border-radius: 5px;">Cancel</a>
+        </div>
+    </form>
+</div>
+
+<!-- Hover Effect Style -->
+<style>
+    .btn:hover {
+        transform: scale(1.05); /* Slightly enlarge the button on hover */
+        transition: transform 0.3s ease-in-out; /* Smooth transition */
+    }
+
+    .btn-warning:hover {
+        background-color: #ff9800; /* Slightly darker yellow */
+        color: white; /* Ensure the text color remains readable */
+    }
+
+    .btn-secondary:hover {
+        background-color: #6c757d; /* Slightly darker gray */
+        color: white; /* Ensure the text color remains readable */
+    }
+
+    .form-control:focus {
+        border-color: #f1c40f; /* Highlight input fields on focus */
+        box-shadow: 0 0 5px rgba(241, 196, 15, 0.6);
+    }
+
+    .card {
+        border-radius: 15px;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    }
+
+    .card-header {
+        background-color: #ff9800;
+        color: white;
+        font-size: 18px;
+        font-weight: bold;
+    }
+
+    .card-body {
+        background-color: #fff;
+        padding: 25px;
+    }
+
+    .form-label {
+        font-size: 16px;
+        font-weight: bold;
+    }
+</style>
+{% endblock %}

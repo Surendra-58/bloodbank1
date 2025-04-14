@@ -147,6 +147,7 @@ class BloodDonationHistory(models.Model):
     donor = models.ForeignKey(CustomUser, on_delete=models.CASCADE, limit_choices_to={'user_type': "3"})
     blood_group = models.CharField(max_length=4, choices=CustomUser.BLOOD_GROUPS)
     blood_unit_donated = models.FloatField()
+    location = models.CharField(max_length=255)  # Add this field to store location
     donation_date = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
@@ -156,6 +157,7 @@ class BloodInventory(models.Model):
     admin = models.ForeignKey(CustomUser, on_delete=models.CASCADE, limit_choices_to={'user_type': "1"})
     blood_group = models.CharField(max_length=4, choices=CustomUser.BLOOD_GROUPS)
     available_units = models.FloatField()
+    # donated_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
         return f"{self.admin.username} - {self.blood_group} - {self.available_units} units"
