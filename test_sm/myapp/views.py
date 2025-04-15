@@ -102,8 +102,8 @@ def register_page(request):
                 user.save()  # Save the user with updated age
 
             user.save()
-            print(user)
-            messages.success(request, "Registration successful.")
+            # print(user)
+            # messages.success(request, "Registration successful.")
             return redirect("login")  # Redirect to login page
         else:
             messages.error(request, "Error in registration. Please check your details.")
