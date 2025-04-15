@@ -12,6 +12,11 @@ urlpatterns = [
     path('register/', views.register_page, name='register'),
     path('logout/', views.logout_page, name='logout'),
 
+    path('forget-password/', views.ForgetPassword, name='forget-password'),
+    path('password-reset-sent/', views.PasswordResetSent, name='password-reset-sent'),
+    path('reset-password/<str:signed_token>/', views.ResetPassword, name='reset-password'),
+
+
     path('adminn/', views.admin_dashboard, name='admin_dashboard'),
     path('approve-hospital/<int:hospital_id>/', views.approve_hospital, name='approve_hospital'),
     path('request-blood/', views.request_blood, name='request_blood'),
@@ -78,6 +83,8 @@ urlpatterns = [
     path('admin/hospital-request/<int:request_id>/reject/', views.admin_reject_request, name='admin_reject_request'),
     path('admin/hospital-request/<int:request_id>/delivered/', views.admin_mark_delivered, name='admin_mark_delivered'),
     path('admin/hospital-request/<int:request_id>/failed/', views.admin_mark_failed, name='admin_mark_failed'),
+
+    # password reset
 
  ]
 

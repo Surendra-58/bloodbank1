@@ -3,82 +3,45 @@ from .models import CustomUser  # Import CustomUser model
 from django.core.exceptions import ValidationError
 
 
+# forms.py
+from django import forms
+
 class Login_form(forms.Form):
-    email = forms.EmailField()
-    password = forms.CharField(widget=forms.PasswordInput(), required=True)
+    email = forms.EmailField(
+        widget=forms.EmailInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'name@example.com',
+            'aria-label': 'Email address'
+        })
+    )
+    password = forms.CharField(
+        widget=forms.PasswordInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'Password',
+            'aria-label': 'Password'
+        }),
+        required=True
+    )
 
-# class RegisterForm(forms.ModelForm):
-#     contact_number = forms.CharField(widget=forms.TextInput(attrs={"placeholder": "contact number"}), required=True)
-#     password = forms.CharField(widget=forms.PasswordInput(attrs={"placeholder": "password"}), required=True)
-#     confirm_password = forms.CharField(widget=forms.PasswordInput(attrs={"placeholder": "confirm password"}), required=True)
-#     identity = forms.ImageField(required=False)
-#     dob = forms.DateField(widget=forms.DateInput(attrs={"type": "date"}), required=True)
-#     address = forms.CharField(widget=forms.Textarea(attrs={"placeholder": "Enter your address"}), required=True)
-#     organization_name = forms.CharField(required=False, widget=forms.TextInput(attrs={"placeholder": "Organization Name"}))
-#     first_name = forms.CharField(required=False, widget=forms.TextInput(attrs={"placeholder": "First Name"}))
-#     last_name = forms.CharField(required=False, widget=forms.TextInput(attrs={"placeholder": "Last Name"}))
-
-#     class Meta:
-#         model = CustomUser
-#         fields = ["email", "user_type", "gender", "profile_pic", "address", "identity",
-#                   "contact_number", "dob", "blood_group", "organization_name", "first_name", "last_name"]
-
-#     def __init__(self, *args, **kwargs):
-#         super(RegisterForm, self).__init__(*args, **kwargs)
-        
-#         # Dynamically adjust fields based on user type
-#         self.fields["user_type"].choices = [choice for choice in self.fields["user_type"].choices if choice[0] in ["2", "3"]]
-
-
-#         if user_type == "2":  # Hospital
-#             self.fields["dob"].required = False
-#             self.fields["gender"].required = False
-#             self.fields["blood_group"].required = False
-#             self.fields["first_name"].required = False
-#             self.fields["last_name"].required = False
-#             self.fields["organization_name"].required = True  # Organization name required for hospitals
-#             self.fields["identity"].required = True  # Identity document required for hospitals
-
-#         else:  # Regular user
-#             self.fields["dob"].required = True
-#             self.fields["gender"].required = True
-#             self.fields["blood_group"].required = True
-#             self.fields["first_name"].required = True
-#             self.fields["last_name"].required = True
-
-#     def clean(self):
-#         cleaned_data = super().clean()
-#         password = cleaned_data.get("password")
-#         confirm_password = cleaned_data.get("confirm_password")
-#         user_type = cleaned_data.get("user_type")
-#         identity = cleaned_data.get("identity")
-
-#         # Password matching validation
-#         if password and confirm_password and password != confirm_password:
-#             self.add_error("confirm_password", "Passwords do not match.")
-
-#         # User type-specific validation
-#         if user_type == "2":  # Hospital-specific validation
-#             if not cleaned_data.get("organization_name"):
-#                 self.add_error("organization_name", "Organization name is required.")
-#             if not identity:
-#                 self.add_error("identity", "Organization must upload an identity document.")
-
-#         elif user_type == "3":  # Regular user-specific validation
-#             if not cleaned_data.get("first_name") or not cleaned_data.get("last_name"):
-#                 self.add_error(None, "First name and Last name are required for regular users.")
-
-#         return cleaned_data
-
-#     def save(self, commit=True):
-#         user = super().save(commit=False)
-#         if self.cleaned_data["user_type"] == "2":  # If hospital
-#             user.is_staff = True
-#             user.identity = self.cleaned_data.get("identity")
-
-#         if commit:
-#             user.save()
-#         return user
+class ResetPasswordForm(forms.Form):
+    password = forms.CharField(
+        widget=forms.PasswordInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'Enter new password',
+            'id': 'password'
+        }),
+        label="New Password",
+        required=True
+    )
+    confirm_password = forms.CharField(
+        widget=forms.PasswordInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'Confirm new password',
+            'id': 'confirm_password'
+        }),
+        label="Confirm Password",
+        required=True
+    )
 
 
 
