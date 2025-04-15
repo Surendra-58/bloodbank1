@@ -169,3 +169,56 @@ class BloodInventory(models.Model):
 #     donor = models.ForeignKey(CustomUser, on_delete=models.CASCADE, limit_choices_to={'user_type': "3"})
 #     is_donation_completed = models.BooleanField(default=False)
 #     updated_at = models.DateTimeField(auto_now=True)
+
+
+# Hospital:
+from django.db import models
+from .models import CustomUser
+
+class HospitalBloodRequest(models.Model):
+    STATUS_CHOICES = [
+        ('pending', 'Pending'),
+        ('processing', 'Processing'),
+        ('delivered', 'Delivered'),
+        ('failed', 'Failed'),
+        ('rejected', 'Rejected'),
+    ]
+
+    hospital = models.ForeignKey(
+        CustomUser,
+        on_delete=models.SET_NULL,
+        limit_choices_to={'user_type': '2'},
+        null=True,
+        blank=True,
+        related_name='hospital_requests'
+    )
+
+    # Snapshots to preserve even if hospital is deleted
+    hospital_name_snapshot = models.CharField(max_length=100, null=True, blank=True)
+    hospital_email_snapshot = models.EmailField(null=True, blank=True)
+    hospital_contact_snapshot = models.CharField(max_length=15, null=True, blank=True)
+    hospital_address_snapshot = models.TextField(null=True, blank=True)
+
+    admin = models.ForeignKey(
+        CustomUser,
+        on_delete=models.SET_NULL,
+        limit_choices_to={'user_type': '1'},
+        null=True,
+        blank=True,
+        related_name='admin_handled_requests'
+    )
+
+    blood_group = models.CharField(max_length=4, choices=CustomUser.BLOOD_GROUPS)
+    units_requested = models.FloatField()
+    units_approved = models.FloatField(null=True, blank=True)
+
+    address = models.TextField()
+    contact_number = models.CharField(max_length=15)
+
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"{self.hospital_name_snapshot or 'Unknown Hospital'} - {self.blood_group} - {self.status}"

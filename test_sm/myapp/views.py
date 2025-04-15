@@ -939,6 +939,294 @@ def hospital_password_change(request):
 
 
 
+# Admin to handle hospital request.
+
+
+# @login_required
+# def admin_manage_hospital_requests(request):
+#     if request.user.user_type != "1":
+#         return redirect('home')
+
+#     pending_requests = HospitalBloodRequest.objects.filter(status='pending')
+#     processing_requests = HospitalBloodRequest.objects.filter(status='processing')
+
+#     context = {
+#         'pending_requests': pending_requests,
+#         'processing_requests': processing_requests,
+#     }
+#     return render(request, 'admin/hospital_requests.html', context)
+
+# @login_required
+# def admin_accept_request(request, request_id):
+#     if request.user.user_type != "1":
+#         return redirect('home')
+
+#     if request.method == 'POST':
+#         blood_request = get_object_or_404(HospitalBloodRequest, id=request_id)
+
+#         try:
+#             approved_units = float(request.POST.get('approved_units', 0))
+#             if approved_units <= 0:
+#                 messages.error(request, "Approved units must be greater than 0.")
+#                 return redirect('admin_manage_hospital_requests')
+
+#             blood_request.admin = request.user
+#             blood_request.units_approved = approved_units
+#             blood_request.status = 'processing'
+#             blood_request.save()
+
+#             messages.success(request, "Request accepted and moved to processing.")
+#         except ValueError:
+#             messages.error(request, "Invalid unit value.")
+
+#     return redirect('admin_manage_hospital_requests')
+
+# @login_required
+# def admin_reject_request(request, request_id):
+#     if request.user.user_type != "1":
+#         return redirect('home')
+
+#     blood_request = get_object_or_404(HospitalBloodRequest, id=request_id)
+#     blood_request.status = 'rejected'
+#     blood_request.save()
+
+#     messages.info(request, "Request rejected.")
+#     return redirect('admin_manage_hospital_requests')
+
+# @login_required
+# def admin_mark_delivered(request, request_id):
+#     if request.user.user_type != "1":
+#         return redirect('home')
+
+#     blood_request = get_object_or_404(HospitalBloodRequest, id=request_id)
+
+#     inventory = BloodInventory.objects.filter(
+#         admin=request.user,
+#         blood_group=blood_request.blood_group
+#     ).first()
+
+#     if inventory and inventory.available_units >= blood_request.units_approved:
+#         inventory.available_units -= blood_request.units_approved
+#         inventory.save()
+
+#         blood_request.status = 'delivered'
+#         blood_request.save()
+
+#         messages.success(request, "Request marked as delivered and inventory updated.")
+#     else:
+#         messages.error(request, "Not enough inventory to fulfill this request.")
+
+#     return redirect('admin_manage_hospital_requests')
+
+# @login_required
+# def admin_mark_failed(request, request_id):
+#     if request.user.user_type != "1":
+#         return redirect('home')
+
+#     blood_request = get_object_or_404(HospitalBloodRequest, id=request_id)
+#     blood_request.status = 'failed'
+#     blood_request.save()
+
+#     messages.warning(request, "Request marked as failed.")
+#     return redirect('admin_manage_hospital_requests')
+@login_required
+def admin_manage_hospital_requests(request):
+    if request.user.user_type != "1":
+        return redirect('home')
+
+    pending_requests = HospitalBloodRequest.objects.filter(status='pending')
+    processing_requests = HospitalBloodRequest.objects.filter(status='processing')
+
+    context = {
+        'pending_requests': pending_requests,
+        'processing_requests': processing_requests,
+    }
+    return render(request, 'admin/hospital_requests.html', context)
+
+
+@login_required
+def admin_accept_request(request, request_id):
+    if request.user.user_type != "1":
+        return redirect('home')
+
+    if request.method == 'POST':
+        blood_request = get_object_or_404(HospitalBloodRequest, id=request_id)
+
+        try:
+            approved_units = float(request.POST.get('approved_units', 0))
+            if approved_units <= 0:
+                messages.error(request, "Approved units must be greater than 0.")
+                return redirect('admin_manage_hospital_requests')
+
+            # Check inventory before accepting the request
+            inventory = BloodInventory.objects.filter(
+                admin=request.user,
+                blood_group=blood_request.blood_group
+            ).first()
+
+            if not inventory or inventory.available_units < approved_units:
+                messages.error(request, "Not enough inventory to fulfill this request.")
+                return redirect('admin_manage_hospital_requests')
+
+            # Deduct units immediately
+            inventory.available_units -= approved_units
+            inventory.save()
+
+            # Update request status and approved units
+            blood_request.admin = request.user
+            blood_request.units_approved = approved_units
+            blood_request.status = 'processing'
+            blood_request.save()
+
+            messages.success(request, "Request accepted and moved to processing. Inventory updated.")
+        except ValueError:
+            messages.error(request, "Invalid unit value.")
+
+    return redirect('admin_manage_hospital_requests')
+
+
+@login_required
+def admin_reject_request(request, request_id):
+    if request.user.user_type != "1":
+        return redirect('home')
+
+    blood_request = get_object_or_404(HospitalBloodRequest, id=request_id)
+    blood_request.status = 'rejected'
+    blood_request.save()
+
+    messages.info(request, "Request rejected.")
+    return redirect('admin_manage_hospital_requests')
+
+
+@login_required
+def admin_mark_delivered(request, request_id):
+    if request.user.user_type != "1":
+        return redirect('home')
+
+    blood_request = get_object_or_404(HospitalBloodRequest, id=request_id)
+
+    # Inventory deduction is already handled during acceptance, so no need to deduct again.
+
+    if blood_request.status == 'processing':
+        blood_request.status = 'delivered'
+        blood_request.save()
+
+        messages.success(request, "Request marked as delivered.")
+    else:
+        messages.error(request, "Request is not in a processable state.")
+
+    return redirect('admin_manage_hospital_requests')
+
+
+@login_required
+def admin_mark_failed(request, request_id):
+    if request.user.user_type != "1":
+        return redirect('home')
+
+    blood_request = get_object_or_404(HospitalBloodRequest, id=request_id)
+
+    # If the request was accepted, and the status is processing, return the blood units back to inventory.
+    if blood_request.status == 'processing':
+        # Add the deducted units back to the inventory
+        inventory = BloodInventory.objects.filter(
+            admin=request.user,
+            blood_group=blood_request.blood_group
+        ).first()
+
+        if inventory:
+            inventory.available_units += blood_request.units_approved
+            inventory.save()
+
+        # Mark the request as failed
+        blood_request.status = 'failed'
+        blood_request.save()
+
+        messages.warning(request, "Request marked as failed. Blood units have been returned to inventory.")
+    else:
+        messages.error(request, "Request cannot be marked as failed because it is not in processing.")
+
+    return redirect('admin_manage_hospital_requests')
+
+
+
+@login_required
+def hospital_request_blood(request):
+    if request.user.user_type != "2":  # Only hospitals
+        messages.error(request, "You are not authorized to request blood.")
+        return redirect('home')
+
+    if request.method == 'POST':
+        blood_group = request.POST.get('blood_group')
+        units_requested = request.POST.get('units_requested')
+        address = request.POST.get('address')
+        contact_number = request.POST.get('contact_number')
+
+        if not all([blood_group, units_requested, address, contact_number]):
+            messages.error(request, "All fields are required.")
+            return redirect('hospital_request_blood')
+
+        try:
+            units_requested = float(units_requested)
+        except ValueError:
+            messages.error(request, "Units must be a number.")
+            return redirect('hospital_request_blood')
+
+        HospitalBloodRequest.objects.create(
+            hospital=request.user,
+            hospital_name_snapshot=request.user.organization_name,
+            hospital_email_snapshot=request.user.email,
+            hospital_contact_snapshot=request.user.contact_number,
+            hospital_address_snapshot=request.user.address,
+            blood_group=blood_group,
+            units_requested=units_requested,
+            address=address,
+            contact_number=contact_number
+        )
+
+        messages.success(request, "Blood request submitted successfully.")
+        return redirect('hospital_dashboard')
+
+    # Pass the BLOOD_GROUP choices from CustomUser model to the template
+    blood_groups = CustomUser.BLOOD_GROUPS
+    return render(request, 'hospital/request_blood.html', {'blood_groups': blood_groups})
+
+
+
+@login_required
+def hospital_view_requests(request):
+    if request.user.user_type != "2":  # Only hospitals
+        messages.error(request, "Unauthorized access.")
+        return redirect('home')
+
+    pending_requests = HospitalBloodRequest.objects.filter(hospital=request.user, status='pending')
+    processing_requests = HospitalBloodRequest.objects.filter(hospital=request.user, status='processing')
+    delivered_requests = HospitalBloodRequest.objects.filter(hospital=request.user, status='delivered')
+    rejected_requests = HospitalBloodRequest.objects.filter(hospital=request.user, status='rejected')
+    failed_requests = HospitalBloodRequest.objects.filter(hospital=request.user, status='failed')
+
+    context = {
+        'pending_requests': pending_requests,
+        'processing_requests': processing_requests,
+        'delivered_requests': delivered_requests,
+        'rejected_requests': rejected_requests,
+        'failed_requests': failed_requests,
+    }
+
+    return render(request, 'hospital/view_requests.html', context)
+
+@login_required
+def hospital_delete_request(request, request_id):
+    if request.user.user_type != "2":
+        messages.error(request, "Unauthorized access.")
+        return redirect('home')
+
+    blood_request = get_object_or_404(HospitalBloodRequest, id=request_id, hospital=request.user, status='pending')
+    blood_request.delete()
+
+    messages.success(request, "Request deleted successfully.")
+    return redirect('hospital_view_requests')
+
+
 
 
 

@@ -69,5 +69,15 @@ urlpatterns = [
     path('hospital/profile/update/', views.hospital_profile_update, name='hospital_profile_update'),
     path('hospital/profile/change-password/', views.hospital_password_change, name='hospital_password_change'),
 
+    path('hospital/request-blood/', views.hospital_request_blood, name='hospital_request_blood'),
+    path('hospital/requests/', views.hospital_view_requests, name='hospital_view_requests'),
+    path('delete_request/<int:request_id>/', views.hospital_delete_request, name='hospital_delete_request'), 
+
+    path('admin/hospital-requests/', views.admin_manage_hospital_requests, name='admin_manage_hospital_requests'),
+    path('admin/hospital-request/<int:request_id>/accept/', views.admin_accept_request, name='admin_accept_request'),
+    path('admin/hospital-request/<int:request_id>/reject/', views.admin_reject_request, name='admin_reject_request'),
+    path('admin/hospital-request/<int:request_id>/delivered/', views.admin_mark_delivered, name='admin_mark_delivered'),
+    path('admin/hospital-request/<int:request_id>/failed/', views.admin_mark_failed, name='admin_mark_failed'),
+
  ]
 

@@ -4,35 +4,123 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Hospital Dashboard</title>
+    <!-- Bootstrap CSS -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <!-- Font Awesome Icons -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+    <!-- Bootstrap Icons -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
 
-    <style>
-        .custom-alert {
-            max-width: 400px;
-            margin: 1rem auto;
-            border-radius: 12px;
-            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
-            animation: slideDown 0.5s ease-out;
-            font-size: 0.95rem;
-        }
+<style>
+    /* Custom Alert */
+    .custom-alert {
+        max-width: 400px;
+        margin: 1rem auto;
+        border-radius: 12px;
+        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
+        animation: slideDown 0.5s ease-out;
+        font-size: 0.95rem;
+    }
 
-        @keyframes slideDown {
-            from {
-                transform: translateY(-20px);
-                opacity: 0;
-            }
-            to {
-                transform: translateY(0);
-                opacity: 1;
-            }
+    /* Slide-down Animation */
+    @keyframes slideDown {
+        from {
+            transform: translateY(-20px);
+            opacity: 0;
         }
+        to {
+            transform: translateY(0);
+            opacity: 1;
+        }
+    }
 
-        .btn-close {
-            font-size: 0.8rem;
-            padding: 0.5rem;
-        }
-    </style>
+    /* Custom Close Button */
+    .btn-close {
+        font-size: 0.8rem;
+        padding: 0.5rem;
+    }
+
+    /* Tab Styling */
+    .nav-tabs .nav-link {
+        border-radius: 25px !important;
+        font-weight: bold;
+        transition: all 0.3s ease !important;
+    }
+
+    /* Hover Effect for Pending Tab */
+    .nav-tabs .nav-link.pending-tab:hover {
+        background-color: #f8d7da !important;
+        color: #721c24 !important;
+    }
+
+    /* Hover Effect for Processing Tab */
+    .nav-tabs .nav-link.processing-tab:hover {
+        background-color: #fff3cd !important;
+        color: #856404 !important;
+    }
+
+    /* Hover Effect for Delivered Tab */
+    .nav-tabs .nav-link.delivered-tab:hover {
+        background-color: #d4edda !important;
+        color: #155724 !important;
+    }
+
+    /* Hover Effect for Rejected Tab */
+    .nav-tabs .nav-link.rejected-tab:hover {
+        background-color: #f8d7da !important;
+        color: #721c24 !important;
+    }
+
+    /* Hover Effect for Failed Tab */
+    .nav-tabs .nav-link.failed-tab:hover {
+        background-color: #f8d7da !important;
+        color: #721c24 !important;
+    }
+
+    /* Active Tab Styles for Pending Tab */
+    .nav-tabs .nav-link.pending-tab.active {
+        background-color: #f8d7da !important;
+        color: #721c24 !important;
+        border-color: #721c24 !important;
+    }
+
+    /* Active Tab Styles for Processing Tab */
+    .nav-tabs .nav-link.processing-tab.active {
+        background-color: #fff3cd !important;
+        color: #856404 !important;
+        border-color: #856404 !important;
+    }
+
+    /* Active Tab Styles for Delivered Tab */
+    .nav-tabs .nav-link.delivered-tab.active {
+        background-color: #d4edda !important;
+        color: #155724 !important;
+        border-color: #155724 !important;
+    }
+
+    /* Active Tab Styles for Rejected Tab */
+    .nav-tabs .nav-link.rejected-tab.active {
+        background-color: #f8d7da !important;
+        color: #721c24 !important;
+        border-color: #721c24 !important;
+    }
+
+    /* Active Tab Styles for Failed Tab */
+    .nav-tabs .nav-link.failed-tab.active {
+        background-color: #f8d7da !important;
+        color: #721c24 !important;
+        border-color: #721c24 !important;
+    }
+
+    /* Icon Hover Effect */
+    .nav-tabs .nav-link i {
+        transition: all 0.3s ease;
+    }
+
+    .nav-tabs .nav-link:hover i {
+        transform: rotate(360deg);
+    }
+</style>
 </head>
 <body>
     <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
@@ -43,6 +131,10 @@
             </button>
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav">
+
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'hospital_dashboard' %}">Home</a>
+                    </li>
                     <li class="nav-item">
                         <a class="nav-link" href="{% url 'hospital_profile' %}">Profile</a>
                     </li>
