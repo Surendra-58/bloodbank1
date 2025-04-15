@@ -36,7 +36,7 @@ from django.conf import settings
 from django.utils import timezone
 from django.core import signing
 from django.core.signing import BadSignature, SignatureExpired, loads
-import datetime
+# import datetime
 
 
 #forms
@@ -134,7 +134,7 @@ def is_hospital(user):
 def home(request):
     if request.user.user_type == "1":
         updated_count = update_ages()
-        messages.success(request, f"Age updated for {updated_count} users.")
+        # messages.success(request, f"Age updated for {updated_count} users.")
         return redirect("admin_dashboard")
 
     elif request.user.user_type == "2":
@@ -501,25 +501,48 @@ def donor_response(request, request_id):
 
 
 
+# @login_required
+# @user_passes_test(is_donor)
+# def available_blood_requests(request):
+#     available_requests = BloodRequest.objects.filter(
+#         blood_group=request.user.blood_group
+#     ).exclude(
+#         responses__donor=request.user,
+#         responses__is_accepted=True
+#     ).exclude(
+#         responses__donor=request.user,
+#         responses__is_deleted=True
+#     ).exclude(
+#         responses__donor=request.user,
+#         responses__is_saved=True 
+#     )
+
+#     return render(request, "donor/available_blood_requests.html", {
+#         "available_requests": available_requests
+#     })
 @login_required
 @user_passes_test(is_donor)
 def available_blood_requests(request):
-    available_requests = BloodRequest.objects.filter(
-        blood_group=request.user.blood_group
-    ).exclude(
-        responses__donor=request.user,
-        responses__is_accepted=True
-    ).exclude(
-        responses__donor=request.user,
-        responses__is_deleted=True
-    ).exclude(
-        responses__donor=request.user,
-        responses__is_saved=True 
-    )
+    if 18 <= request.user.age <= 65:
+        available_requests = BloodRequest.objects.filter(
+            blood_group=request.user.blood_group
+        ).exclude(
+            responses__donor=request.user,
+            responses__is_accepted=True
+        ).exclude(
+            responses__donor=request.user,
+            responses__is_deleted=True
+        ).exclude(
+            responses__donor=request.user,
+            responses__is_saved=True
+        )
+    else:
+        available_requests = BloodRequest.objects.none()  # return empty queryset
 
     return render(request, "donor/available_blood_requests.html", {
         "available_requests": available_requests
     })
+
 
 
 
@@ -663,21 +686,6 @@ def admin_blood_requests(request):
     return render(request, 'admin/admin_blood_requests.html', {'blood_requests': blood_requests})
 
 
-# @login_required
-# @user_passes_test(is_admin)
-# def view_blood_request(request, request_id):
-#     # Get the specific blood request
-#     blood_request = get_object_or_404(BloodRequest, id=request_id, admin=request.user)
-    
-#     # Get all accepted donors for this request
-#     selected_donors = DonorResponse.objects.filter(blood_request=blood_request, is_accepted=True, is_select=True).order_by('-created_at')
-#     unselected_donors = DonorResponse.objects.filter(blood_request=blood_request, is_accepted=True, is_select=False).order_by('-created_at')
-
-#     return render(request, 'admin/view_blood_request.html', {
-#         'blood_request': blood_request,
-#         'selected_donors': selected_donors,
-#         'unselected_donors': unselected_donors
-#     })
 
 @login_required
 @user_passes_test(is_admin)
