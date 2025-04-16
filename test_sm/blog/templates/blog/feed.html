@@ -60,10 +60,10 @@
     <div class="card-footer">
         <div class="d-flex justify-content-between">
             <!-- Like -->
-            <form action="{% url 'blog:toggle_like' post.id %}" method="post" class="me-2">
+            <form onsubmit="likePost(event, {{ post.id }})" id="like-form-{{ post.id }}">
                 {% csrf_token %}
-                <button type="submit" class="btn btn-sm {{ post.is_liked|yesno:'btn-danger,btn-outline-danger' }}">
-                    ❤️ Like ({{ post.like_count }})
+                <button type="submit" class="btn btn-sm {% if post.is_liked %}btn-danger{% else %}btn-outline-danger{% endif %}" id="like-btn-{{ post.id }}">
+                    ❤️ Like (<span id="like-count-{{ post.id }}">{{ post.like_count }}</span>)
                 </button>
             </form>
 

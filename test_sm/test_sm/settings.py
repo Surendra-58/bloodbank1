@@ -149,7 +149,8 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 SESSION_ENGINE = 'django.contrib.sessions.backends.db'
 SESSION_COOKIE_AGE = 86400  # 1 day
-SESSION_EXPIRE_AT_BROWSER_CLOSE = True  # Session expires when the browser closes
+SESSION_EXPIRE_AT_BROWSER_CLOSE = False  # Session expires when the browser closes
+SESSION_SAVE_EVERY_REQUEST = True
 
 
 EMAIL_HOST="smtp.gmail.com"

@@ -133,6 +133,35 @@
             const btn = document.getElementById(`view-more-btn-${postId}`);
             if (btn) btn.remove();
         }
+
+        function likePost(event, postId) {
+            event.preventDefault();
+
+            const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+
+            fetch(`/blog/toggle-like/${postId}/`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': csrfToken,
+                    'X-Requested-With': 'XMLHttpRequest',
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                const btn = document.getElementById(`like-btn-${postId}`);
+                const countSpan = document.getElementById(`like-count-${postId}`);
+
+                if (data.liked) {
+                    btn.classList.remove('btn-outline-danger');
+                    btn.classList.add('btn-danger');
+                } else {
+                    btn.classList.remove('btn-danger');
+                    btn.classList.add('btn-outline-danger');
+                }
+
+                countSpan.textContent = data.like_count;
+            });
+        }
     </script>
 
 

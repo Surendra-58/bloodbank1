@@ -8,7 +8,7 @@ urlpatterns = [
     path('', views.blog_feed, name='blog_feed'),
     path('create/', views.create_post, name='create_post'),
     path('share/<int:post_id>/', views.share_post, name='share_post'),
-    path('like/<int:post_id>/', views.toggle_like, name='toggle_like'),
+    path('toggle-like/<int:post_id>/', views.toggle_like, name='toggle_like'),
 
     path('comment/<int:post_id>/', views.comment_on_post, name='comment_on_post'),
     path('profile/<int:user_id>/', views.user_blog_profile, name='user_blog_profile'),

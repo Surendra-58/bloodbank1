@@ -9,6 +9,7 @@ from django.db.models import Prefetch
 from django.urls import reverse
 from django.http import HttpResponseRedirect
 
+
 @login_required
 def blog_feed(request):
     user_type_filter = request.GET.get('user_type')
@@ -47,13 +48,10 @@ def blog_feed(request):
         'posts': posts,
         'user_type_filter': user_type_filter
     })
+
 @login_required
 def comment_on_post(request, post_id):
     post = BlogPost.objects.get(id=post_id)
-
-    # Ensure the user is authenticated
-    if not request.user.is_authenticated:
-        return redirect('login')
 
     # Get the user_type from the request GET parameters (the one the user selected)
     user_type_filter = request.GET.get('user_type')
@@ -62,6 +60,7 @@ def comment_on_post(request, post_id):
         content = request.POST.get('content')
         parent_comment = request.POST.get('parent_comment')
 
+        # Create the comment
         comment = BlogComment.objects.create(
             post=post,
             user=request.user,
@@ -71,10 +70,12 @@ def comment_on_post(request, post_id):
 
         messages.success(request, "Comment added successfully!")
 
-        # Redirect to the blog_feed with user_type and post_id as query parameters
-        return redirect(reverse('blog:blog_feed') + f'?user_type={user_type_filter}&post_id={post.id}')
+        # Redirect back to the specific post where the comment was made
+        return redirect(f'/blog/post/{post.id}/?user_type={user_type_filter}')
 
+    # If the request method is not POST, just redirect to the blog feed
     return redirect('blog:blog_feed')
+
 
 
 
@@ -108,10 +109,13 @@ def delete_post(request, post_id):
 
 @login_required
 def create_post(request):
+    # Get the user_type of the logged-in user
+    user_type = request.user.user_type
+
     if request.method == "POST":
         caption = request.POST.get('caption')
         image = request.FILES.get('image')
-        
+
         if not caption:
             messages.error(request, "Caption is required!")
             return redirect('blog:create_post')
@@ -126,47 +130,70 @@ def create_post(request):
         messages.success(request, "Post created successfully!")
         return redirect('blog:blog_feed')
 
-    return render(request, 'blog/create_post.html')
+    return render(request, 'blog/create_post.html', {'user_type': user_type})
 
 
 
+from django.http import JsonResponse
 
 @login_required
 def toggle_like(request, post_id):
-    post = BlogPost.objects.get(id=post_id)
+    post = get_object_or_404(BlogPost, id=post_id)
     like, created = BlogLike.objects.get_or_create(user=request.user, post=post)
 
     if not created:
-        like.delete()  # Unlike if already liked
+        like.delete()
+        liked = False
+    else:
+        liked = True
 
-    return redirect('blog:blog_feed')
+    return JsonResponse({
+        "liked": liked,
+        "like_count": post.likes.count()
+    })
 
 
 
 
 
+
+# @login_required
+# def user_blog_profile(request, user_id):
+#     user = CustomUser.objects.get(id=user_id)
+#     posts = BlogPost.objects.filter(author=user).select_related('author')
+
+#     return render(request, 'blog/user_blog_profile.html', {
+#         'user': user,
+#         'posts': posts
+#     })
 
 @login_required
 def user_blog_profile(request, user_id):
-    user = CustomUser.objects.get(id=user_id)
-    posts = BlogPost.objects.filter(author=user).select_related('author')
+    user = get_object_or_404(CustomUser, id=user_id)
+    posts = BlogPost.objects.filter(author=user)
+
+    # Pass user_type to the template
+    user_type = request.user.user_type  # Get the logged-in user's type
 
     return render(request, 'blog/user_blog_profile.html', {
         'user': user,
-        'posts': posts
+        'posts': posts,
+        'user_type': user_type,  # Pass user_type to decide which base template to use
     })
-
-
+    
 @login_required
 def post_detail(request, post_id):
-    post = BlogPost.objects.get(id=post_id)
+    post = get_object_or_404(BlogPost, id=post_id)
     comments = BlogComment.objects.filter(post=post).order_by('commented_at')
+
+    # Get the user_type of the logged-in user
+    user_type = request.user.user_type
 
     return render(request, 'blog/post_detail.html', {
         'post': post,
-        'comments': comments
+        'comments': comments,
+        'user_type': user_type
     })
-
 @login_required
 def share_post(request, post_id):
     original_post = BlogPost.objects.get(id=post_id)
