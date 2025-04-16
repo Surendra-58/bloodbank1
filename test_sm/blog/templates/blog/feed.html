@@ -19,6 +19,31 @@
         padding: 20px;
     }
 
+    /* Post Image Styling */
+    .card-body img {
+        width: 100%; /* Make the image responsive */
+        max-width: 300px; /* Restrict maximum width to 300px (adjust as needed) */
+        height: auto; /* Maintain the aspect ratio */
+        object-fit: cover; /* Ensure the image fills the space without distortion */
+        border-radius: 8px; /* Optional: rounded corners */
+        margin-bottom: 15px; /* Space below the image */
+        cursor: pointer; /* Indicate that the image is clickable */
+    }
+
+    /* Modal Styling */
+    #imageModal .modal-dialog {
+        max-width: 90%; /* Allow the modal to be responsive */
+    }
+
+    #imageModal .modal-content {
+        background-color: #fff; /* Ensure the background is white for the modal */
+    }
+
+    #imageModal img {
+        width: 100%; /* Make the image responsive within the modal */
+        height: auto; /* Maintain aspect ratio */
+    }
+
     .card-footer {
         background-color: #F9F9F9; /* Light footer background */
         border-top: 1px solid #ddd; /* Border between content and footer */
@@ -133,16 +158,24 @@
 
     <!-- Content -->
     <div class="card-body">
-        {% if post.caption %}<p>{{ post.caption }}</p>{% endif %}
-        {% if post.image %}<img src="{{ post.image.url }}" class="img-fluid rounded mb-3">{% endif %}
+        {% if post.caption %}
+            <p>{{ post.caption|safe }}</p>
+
+        {% endif %}
+        
+        {% if post.image %}
+            <!-- Display the image as a smaller version that can be clicked -->
+            <img src="{{ post.image.url }}" class="img-fluid rounded mb-3" data-bs-toggle="modal" data-bs-target="#imageModal" onclick="showImage('{{ post.image.url }}')" style="max-width: 300px; cursor: pointer;">
+        {% endif %}
+        
         {% if post.is_shared %}
-        <div class="border p-2 mt-3 bg-light">
-            <p><strong>Original by {{ post.shared_post.author.first_name }}</strong></p>
-            <p>{{ post.shared_post.caption }}</p>
-            {% if post.shared_post.image %}
-                <img src="{{ post.shared_post.image.url }}" class="img-fluid">
-            {% endif %}
-        </div>
+            <div class="border p-2 mt-3 bg-light">
+                <p><strong>Original by {{ post.shared_post.author.first_name }}</strong></p>
+                <p>{{ post.shared_post.caption }}</p>
+                {% if post.shared_post.image %}
+                    <img src="{{ post.shared_post.image.url }}" class="img-fluid">
+                {% endif %}
+            </div>
         {% endif %}
 
         <!-- Delete Button -->
@@ -152,6 +185,21 @@
                 <button type="submit" class="btn btn-sm btn-danger float-end" onclick="return confirm('Are you sure you want to delete this post?')">Delete</button>
             </form>
         {% endif %}
+    </div>
+
+    <!-- Image Modal -->
+    <div class="modal fade" id="imageModal" tabindex="-1" aria-labelledby="imageModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <!-- Image will be loaded here dynamically -->
+                    <img src="" id="modalImage" class="img-fluid" alt="Full Image" style="max-width: 100%; max-height: 100vh; object-fit: contain;">
+                </div>
+            </div>
+        </div>
     </div>
 
     <!-- Footer with Like, Comment, and Share buttons -->

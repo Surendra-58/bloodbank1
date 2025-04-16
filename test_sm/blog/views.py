@@ -155,6 +155,10 @@ def delete_post(request, post_id):
 
 
 
+
+
+from django.utils.html import strip_tags
+
 @login_required
 def create_post(request):
     # Get the user_type of the logged-in user
@@ -164,14 +168,15 @@ def create_post(request):
         caption = request.POST.get('caption')
         image = request.FILES.get('image')
 
+        # Check for valid caption
         if not caption:
             messages.error(request, "Caption is required!")
             return redirect('blog:create_post')
 
-        # Create the new post
+        # Store the raw HTML caption
         BlogPost.objects.create(
             author=request.user,
-            caption=caption,
+            caption=caption,  # Store the raw HTML version
             image=image
         )
 
@@ -179,6 +184,7 @@ def create_post(request):
         return redirect('blog:blog_feed')
 
     return render(request, 'blog/create_post.html', {'user_type': user_type})
+
 
 
 

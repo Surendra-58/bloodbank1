@@ -1,6 +1,7 @@
 from django.urls import path
 from . import views
-
+from django.conf import settings
+from django.conf.urls.static import static
 
 app_name = 'blog'  # ✅ This registers the 'blog' namespace
 
@@ -16,5 +17,4 @@ urlpatterns = [
 
     path('post/<int:post_id>/delete/', views.delete_post, name='delete_post'),
     path('get-comments/<int:post_id>/', views.get_comments, name='get_comments'),
-
 ]
