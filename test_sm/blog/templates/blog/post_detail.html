@@ -1,0 +1,35 @@
+<div class="card mb-3">
+    <div class="card-header">
+        <strong>{{ post.author.first_name }} {{ post.author.last_name }}</strong>
+    </div>
+    <div class="card-body">
+        <p>{{ post.caption }}</p>
+        {% if post.image %}
+            <img src="{{ post.image.url }}" class="img-fluid">
+        {% endif %}
+    </div>
+</div>
+
+<h4>Comments</h4>
+{% for comment in comments %}
+    <div class="comment">
+        <strong>{{ comment.user.first_name }} {{ comment.user.last_name }}:</strong>
+        <p>{{ comment.content }}</p>
+        {% if comment.replies.all %}
+            <div class="replies">
+                {% for reply in comment.replies.all %}
+                    <div class="reply">
+                        <strong>{{ reply.user.first_name }} {{ reply.user.last_name }}:</strong>
+                        <p>{{ reply.content }}</p>
+                    </div>
+                {% endfor %}
+            </div>
+        {% endif %}
+    </div>
+{% endfor %}
+
+<form method="POST" action="{% url 'blog:comment_on_post' post.id %}">
+    {% csrf_token %}
+    <textarea name="content" class="form-control" placeholder="Write a comment..."></textarea>
+    <button type="submit" class="btn btn-primary mt-2">Post Comment</button>
+</form>

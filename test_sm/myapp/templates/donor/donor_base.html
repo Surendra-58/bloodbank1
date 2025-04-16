@@ -49,6 +49,9 @@
                         <a class="nav-link" href="{% url 'donor_dashboard' %}">Dashboard</a>
                     </li>
                     <li class="nav-item">
+                        <a class="nav-link" href="{% url 'home' %}">Home</a>
+                    </li>
+                    <li class="nav-item">
                         <a class="nav-link" href="{% url 'available_blood_requests' %}">Available Blood Requests</a>
                     </li>
                     <li class="nav-item">
@@ -98,5 +101,24 @@
             });
         }, 15000);
     </script>
+
+    <!-- it is for comment part of blog -->
+    <script>
+        function toggleComments(postId) {
+            const section = document.getElementById(`comments-${postId}`);
+            section.style.display = (section.style.display === "none") ? "block" : "none";
+        }
+
+        function showAllComments(postId) {
+            const hiddenComments = document.querySelectorAll(`.comment-item-${postId}.d-none`);
+            hiddenComments.forEach(comment => comment.classList.remove("d-none"));
+
+            const btn = document.getElementById(`view-more-btn-${postId}`);
+            if (btn) btn.remove();
+        }
+    </script>
+
+
+
 </body>
 </html>

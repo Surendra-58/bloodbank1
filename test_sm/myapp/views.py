@@ -43,6 +43,8 @@ from django.core.signing import BadSignature, SignatureExpired, loads
 
 from .forms import RegisterForm, ResetPasswordForm, Login_form
 
+from blog.models import *
+
 
 
 
@@ -130,20 +132,35 @@ def is_donor(user):
 def is_hospital(user):
     return user.is_authenticated and user.user_type == "2"
 
+# @login_required
+# def home(request):
+#     if request.user.user_type == "1":
+#         updated_count = update_ages()
+#         # messages.success(request, f"Age updated for {updated_count} users.")
+#         return redirect("admin_dashboard")
+
+#     elif request.user.user_type == "2":
+#         return redirect("hospital_dashboard")  
+#     elif request.user.user_type == "3":
+#         return redirect("donor_dashboard")  
+#     else:
+#         messages.error(request, "Invalid user type.")
+#         return redirect("login")  # Redirect to login if user type is unknown
+from django.contrib.auth import logout
+
 @login_required
 def home(request):
-    if request.user.user_type == "1":
-        updated_count = update_ages()
-        # messages.success(request, f"Age updated for {updated_count} users.")
-        return redirect("admin_dashboard")
+    posts = BlogPost.objects.all().order_by('-created_at')
 
+    if request.user.user_type == "1":
+        return render(request, "admin/home.html", {'posts': posts})
     elif request.user.user_type == "2":
-        return redirect("hospital_dashboard")  
+        return render(request, "hospital/home.html", {'posts': posts})
     elif request.user.user_type == "3":
-        return redirect("donor_dashboard")  
+        return render(request, "donor/home.html", {'posts': posts})
     else:
-        messages.error(request, "Invalid user type.")
-        return redirect("login")  # Redirect to login if user type is unknown
+        logout(request)  # Optional: log them out to prevent weird states
+        return redirect("login")  # Redirect to login if user_type is invalid
 
 
 @login_required
