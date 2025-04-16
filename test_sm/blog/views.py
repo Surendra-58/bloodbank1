@@ -8,6 +8,19 @@ from django.contrib import messages
 from django.db.models import Prefetch
 from django.urls import reverse
 from django.http import HttpResponseRedirect
+from django.template.loader import render_to_string
+from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt  # only if you use fetch without CSRF
+
+from django.http import JsonResponse
+from django.contrib.auth.decorators import login_required
+from .models import BlogPost, BlogComment
+
+
+
+from django.core.paginator import Paginator
+from django.utils.timesince import timesince
+
 
 
 @login_required
@@ -49,12 +62,7 @@ def blog_feed(request):
         'user_type_filter': user_type_filter
     })
 
-from django.http import JsonResponse
-from django.views.decorators.csrf import csrf_exempt  # only if you use fetch without CSRF
 
-from django.http import JsonResponse
-from django.contrib.auth.decorators import login_required
-from .models import BlogPost, BlogComment
 
 @login_required
 def comment_on_post(request, post_id):
@@ -86,6 +94,34 @@ def comment_on_post(request, post_id):
         })
     else:
         return JsonResponse({'success': False, 'error': 'Invalid request method'})
+
+
+
+
+
+# AJAX: Get paginated comments
+@login_required
+def get_comments(request, post_id):
+    post = get_object_or_404(BlogPost, id=post_id)
+    page = int(request.GET.get("page", 1))
+    comments = post.comments.all().order_by("-commented_at")  # Most recent first
+
+    paginator = Paginator(comments, 5)
+    page_obj = paginator.get_page(page)
+
+    data = [{
+        "content": c.content,
+        "first_name": c.user.first_name,
+        "last_name": c.user.last_name,
+        "user_type": c.user.get_user_type_display(),
+        "profile_pic": c.user.profile_pic.url if c.user.profile_pic else "",
+        "time_since": timesince(c.commented_at),
+    } for c in page_obj.object_list]
+
+    return JsonResponse({
+        "comments": data,
+        "has_next": page_obj.has_next()
+    })
 
 
 

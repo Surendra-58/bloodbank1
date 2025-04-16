@@ -9,6 +9,10 @@
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
     <!-- Bootstrap Icons -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+    {% block style %}
+
+    <!-- Default or shared styles can go here -->
+    {% endblock %}
 </head>
 <body>
     <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
@@ -67,72 +71,9 @@
         {% endblock %}
     </div>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-<!--     <script type="text/javascript">
-        document.addEventListener("DOMContentLoaded", function() {
-            const userTypeSelect = document.getElementById('id_user_type');
-            const organizationFields = document.getElementById('organization-fields');
-            const userFields = document.getElementById('user-fields');
-            const dobField = document.getElementById('id_dob');  // Date of birth field
-            const identityMessage = document.getElementById('identity-message');  // Define the identity message element
-            const identityField = document.getElementById('id_identity');
 
-            // Function to update identity message
-            function updateIdentityMessage() {
-                if (userTypeSelect.value === "2") { // Assuming 2 = Hospital
-                    identityMessage.innerHTML = "<i>Please enter Organization identity Photo, so that we can verify your registration.</i>";
-                } else {
-                    identityMessage.innerHTML = "<i>Please upload your Driving Licence/National identity's photo.</i>";
-                }
-            }
-
-            // Run the function on page load and when the selection changes
-            userTypeSelect.addEventListener("change", updateIdentityMessage);
-            updateIdentityMessage(); // Call initially to set the correct message
-
-            // Function to toggle the required attribute and field visibility
-            function toggleFields() {
-                if (userTypeSelect.value === "2") {  // Hospital
-                    organizationFields.style.display = "block";
-                    userFields.style.display = "none";
-                    dobField.removeAttribute('required');  // Disable 'required' for dob
-                    dobField.setAttribute('disabled', 'true');  // Optional: Disable dob input for hospital
-                } else {
-                    organizationFields.style.display = "none";
-                    userFields.style.display = "block";
-                    dobField.setAttribute('required', 'true');  // Enable 'required' for dob
-                    dobField.removeAttribute('disabled');  // Enable dob input for regular user
-                }
-            }
-
-            // Listen for changes in user_type
-            userTypeSelect.addEventListener('change', toggleFields);
-
-            // Initial toggle based on the current selection
-            toggleFields();
-        });
-    </script> -->
-    <!-- it is for comment part of blog -->
     <script>
-        function toggleComments(postId) {
-            const section = document.getElementById(`comments-${postId}`);
-            // Close all other comment sections (only those starting with 'comments-')
-            const allSections = document.querySelectorAll('[id^="comments-"]');
-            allSections.forEach((sec) => {
-                if (sec.id !== `comments-${postId}`) {
-                    sec.style.display = "none";
-                }
-            });
-            // Toggle the clicked section
-            section.style.display = (section.style.display === "none") ? "block" : "none";
-        }
 
-        function showAllComments(postId) {
-            const hiddenComments = document.querySelectorAll(`.comment-item-${postId}.d-none`);
-            hiddenComments.forEach(comment => comment.classList.remove("d-none"));
-
-            const btn = document.getElementById(`view-more-btn-${postId}`);
-            if (btn) btn.remove();
-        }
 
         function likePost(event, postId) {
             event.preventDefault();
@@ -162,50 +103,108 @@
                 countSpan.textContent = data.like_count;
             });
         }
+
+        let commentPage = {};  // Track current page per post
+
+        function toggleComments(postId) {
+            const section = document.getElementById(`comments-${postId}`);
+            const isCurrentlyVisible = section.style.display === 'block';
+
+            // Hide all comment sections
+            document.querySelectorAll("[id^='comments-']").forEach(s => {
+                s.style.display = 'none';
+            });
+
+            // Toggle the current one
+            if (!isCurrentlyVisible) {
+                section.style.display = 'block';
+
+                if (!commentPage[postId]) {
+                    commentPage[postId] = 1;
+                    loadComments(postId, 1);
+                } else {
+                    loadComments(postId, commentPage[postId]);
+                }
+            }
+        }
+
+
+        function loadComments(postId, page) {
+            fetch(`/blog/get-comments/${postId}/?page=${page}`)
+                .then(response => response.json())
+                .then(data => {
+                    const container = document.getElementById(`comment-list-${postId}`);
+                    container.innerHTML = ""; // Clear previous comments
+
+                    data.comments.forEach(comment => {
+                        const div = document.createElement("div");
+                        div.className = "mt-2 border-bottom pb-2";
+                        div.innerHTML = `
+                            <div class="d-flex align-items-center">
+                                <img src="${comment.profile_pic}" class="rounded-circle me-2" width="30" height="30">
+                                <strong>${comment.first_name} ${comment.last_name}</strong>
+                                <span class="ms-2 text-muted">${comment.user_type}</span>
+                            </div>
+                            <p class="mb-1">${comment.content}</p>
+                            <small class="text-muted">${comment.time_since} ago</small>
+                        `;
+                        container.appendChild(div);
+                    });
+
+                    // Update current page
+                    commentPage[postId] = page;
+
+                    const nextBtn = document.getElementById(`next-comments-btn-${postId}`);
+                    const backBtn = document.getElementById(`back-comments-btn-${postId}`);
+
+                    // Next button
+                    if (data.has_next) {
+                        nextBtn.classList.remove("d-none");
+                    } else {
+                        nextBtn.classList.add("d-none");
+                    }
+
+                    // Back button
+                    if (page > 1) {
+                        backBtn.classList.remove("d-none");
+                    } else {
+                        backBtn.classList.add("d-none");
+                    }
+                });
+        }
+
+        function nextComments(postId) {
+            const currentPage = commentPage[postId] || 1;
+            loadComments(postId, currentPage + 1);
+        }
+
+        function prevComments(postId) {
+            const currentPage = commentPage[postId] || 1;
+            if (currentPage > 1) {
+                loadComments(postId, currentPage - 1);
+            }
+        }
+
         function submitComment(event, postId) {
-            event.preventDefault();  // Prevent default form submission
+            event.preventDefault();
+            const form = document.getElementById(`comment-form-${postId}`);
+            const formData = new FormData(form);
 
-            const content = document.querySelector(`#comment-form-${postId} textarea`).value;
-            const csrfToken = document.querySelector('[name="csrfmiddlewaretoken"]').value;
-
-            const formData = new FormData();
-            formData.append('content', content);
-
-            // Send the AJAX request
             fetch(`/blog/comment/${postId}/`, {
                 method: 'POST',
                 headers: {
-                    'X-CSRFToken': csrfToken,  // Add CSRF token for security
+                    'X-CSRFToken': formData.get('csrfmiddlewaretoken')
                 },
                 body: formData
             })
-            .then(response => response.json())
+            .then(res => res.json())
             .then(data => {
                 if (data.success) {
-                    // Create new comment element
-                    const newCommentHTML = `
-                        <div class="mt-2 border-bottom pb-2">
-                            <div class="d-flex align-items-center">
-                                <img src="${data.profile_pic}" class="rounded-circle me-2" width="30" height="30">
-                                <strong>${data.first_name} ${data.last_name}</strong>
-                                <span class="ms-2 text-muted">${data.user_type}</span>
-                            </div>
-                            <p class="mb-1">${data.content}</p>
-                            <small class="text-muted">Just now</small>
-                        </div>
-                    `;
-
-                    // Prepend new comment to the comment list
-                    const commentList = document.querySelector(`#comment-list-${postId}`);
-                    commentList.innerHTML = newCommentHTML + commentList.innerHTML;
-
-                    // Clear the textarea after submission
-                    document.querySelector(`#comment-form-${postId} textarea`).value = '';
-                } else {
-                    alert(data.error);  // Show error if something goes wrong
+                    commentPage[postId] = 1;
+                    loadComments(postId, 1);  // Refresh first page
+                    form.reset();
                 }
-            })
-            .catch(error => console.error('Error:', error));  // Catch any AJAX errors
+            });
         }
 
     </script>
