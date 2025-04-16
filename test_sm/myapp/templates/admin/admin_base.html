@@ -111,6 +111,14 @@
     <script>
         function toggleComments(postId) {
             const section = document.getElementById(`comments-${postId}`);
+            // Close all other comment sections
+            const allSections = document.querySelectorAll('.mt-3');
+            allSections.forEach((section) => {
+                if (section.id !== `comments-${postId}`) {
+                    section.style.display = "none";
+                }
+            });
+            // Toggle the clicked section
             section.style.display = (section.style.display === "none") ? "block" : "none";
         }
 

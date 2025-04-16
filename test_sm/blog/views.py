@@ -15,27 +15,46 @@ from django.db.models import Prefetch
 
 @login_required
 def blog_feed(request):
-    # Prefetch only the latest 10 comments per post, ordered newest-first
-    comments_prefetch = Prefetch(
-        'comments',
-        queryset=BlogComment.objects.select_related('user').order_by('-commented_at')[:10],
-        to_attr='latest_comments'
-    )
+    # Get the user_type filter from the URL query parameters
+    user_type_filter = request.GET.get('user_type', None)
 
-    posts = BlogPost.objects.select_related('author', 'shared_post').prefetch_related(
-        'likes',
-        comments_prefetch
-    )
+    # If no filter is provided, use the current user's user_type
+    if user_type_filter is None:
+        user_type_filter = request.user.user_type
 
+    # Filter posts based on the selected user_type
+    if user_type_filter == "1":  # Admin
+        posts = BlogPost.objects.filter(author__user_type="1").select_related('author', 'shared_post').prefetch_related('likes', 'comments')
+    elif user_type_filter == "2":  # Hospital
+        posts = BlogPost.objects.filter(author__user_type="2").select_related('author', 'shared_post').prefetch_related('likes', 'comments')
+    elif user_type_filter == "3":  # Donor
+        posts = BlogPost.objects.filter(author__user_type="3").select_related('author', 'shared_post').prefetch_related('likes', 'comments')
+    else:
+        return redirect("login")
+
+    # Add 'is_liked' status to each post
     for post in posts:
         post.is_liked = post.likes.filter(user=request.user).exists()
 
-    template_map = {
-        "1": 'admin/home.html',
-        "2": 'hospital/home.html',
-        "3": 'donor/home.html'
-    }
-    return render(request, template_map.get(request.user.user_type, 'login'), {'posts': posts})
+    # Return the appropriate template based on the user's user_type
+    if request.user.user_type == "1":  # Admin
+        return render(request, 'admin/home.html', {'posts': posts, 'user_type_filter': user_type_filter})
+    elif request.user.user_type == "2":  # Hospital
+        return render(request, 'hospital/home.html', {'posts': posts, 'user_type_filter': user_type_filter})
+    elif request.user.user_type == "3":  # Donor
+        return render(request, 'donor/home.html', {'posts': posts, 'user_type_filter': user_type_filter})
+    else:
+        return redirect("login")
+
+# @login_required
+# def blog_feed(request):
+#     # Fetch all posts, and filter by user type in the template
+#     posts = BlogPost.objects.select_related('author', 'shared_post').prefetch_related('likes', 'comments')
+
+#     for post in posts:
+#         post.is_liked = post.likes.filter(user=request.user).exists()
+
+#     return render(request, 'blog/blog_feed.html', {'posts': posts})
 
 
 
@@ -91,7 +110,9 @@ def comment_on_post(request, post_id):
         )
 
         messages.success(request, "Comment added successfully!")
-        return redirect('blog:blog_feed')
+        
+        # Redirect back to the post detail page
+        return HttpResponseRedirect(reverse('blog:post_detail', args=[post_id]))
 
     return redirect('blog:blog_feed')
 
