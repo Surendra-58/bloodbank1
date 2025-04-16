@@ -158,6 +158,51 @@
                 countSpan.textContent = data.like_count;
             });
         }
+        function submitComment(event, postId) {
+            event.preventDefault();  // Prevent default form submission
+
+            const content = document.querySelector(`#comment-form-${postId} textarea`).value;
+            const csrfToken = document.querySelector('[name="csrfmiddlewaretoken"]').value;
+
+            const formData = new FormData();
+            formData.append('content', content);
+
+            // Send the AJAX request
+            fetch(`/blog/comment/${postId}/`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': csrfToken,  // Add CSRF token for security
+                },
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Create new comment element
+                    const newCommentHTML = `
+                        <div class="mt-2 border-bottom pb-2">
+                            <div class="d-flex align-items-center">
+                                <img src="${data.profile_pic}" class="rounded-circle me-2" width="30" height="30">
+                                <strong>${data.first_name} ${data.last_name}</strong>
+                                <span class="ms-2 text-muted">${data.user_type}</span>
+                            </div>
+                            <p class="mb-1">${data.content}</p>
+                            <small class="text-muted">Just now</small>
+                        </div>
+                    `;
+
+                    // Prepend new comment to the comment list
+                    const commentList = document.querySelector(`#comment-list-${postId}`);
+                    commentList.innerHTML = newCommentHTML + commentList.innerHTML;
+
+                    // Clear the textarea after submission
+                    document.querySelector(`#comment-form-${postId} textarea`).value = '';
+                } else {
+                    alert(data.error);  // Show error if something goes wrong
+                }
+            })
+            .catch(error => console.error('Error:', error));  // Catch any AJAX errors
+        }
 
     </script>
 

@@ -49,32 +49,44 @@ def blog_feed(request):
         'user_type_filter': user_type_filter
     })
 
+from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt  # only if you use fetch without CSRF
+
+from django.http import JsonResponse
+from django.contrib.auth.decorators import login_required
+from .models import BlogPost, BlogComment
+
 @login_required
 def comment_on_post(request, post_id):
-    post = BlogPost.objects.get(id=post_id)
-
-    # Get the user_type from the request GET parameters (the one the user selected)
-    user_type_filter = request.GET.get('user_type')
-
     if request.method == "POST":
-        content = request.POST.get('content')
-        parent_comment = request.POST.get('parent_comment')
+        content = request.POST.get('content')  # Get content from the form
+        if not content:
+            return JsonResponse({'success': False, 'error': 'Comment cannot be empty'})
 
-        # Create the comment
+        try:
+            post = BlogPost.objects.get(id=post_id)  # Get the post object by ID
+        except BlogPost.DoesNotExist:
+            return JsonResponse({'success': False, 'error': 'Post not found'})
+
+        # Create a new comment and associate it with the post and user
         comment = BlogComment.objects.create(
             post=post,
             user=request.user,
-            content=content,
-            parent_id=parent_comment if parent_comment else None
+            content=content
         )
 
-        messages.success(request, "Comment added successfully!")
+        # Return the new comment details in JSON format to be rendered on the frontend
+        return JsonResponse({
+            'success': True,
+            'content': comment.content,
+            'first_name': request.user.first_name,
+            'last_name': request.user.last_name,
+            'user_type': request.user.get_user_type_display(),
+            'profile_pic': request.user.profile_pic.url if request.user.profile_pic else ''
+        })
+    else:
+        return JsonResponse({'success': False, 'error': 'Invalid request method'})
 
-        # Redirect back to the specific post where the comment was made
-        return redirect(f'/blog/post/{post.id}/?user_type={user_type_filter}')
-
-    # If the request method is not POST, just redirect to the blog feed
-    return redirect('blog:blog_feed')
 
 
 
