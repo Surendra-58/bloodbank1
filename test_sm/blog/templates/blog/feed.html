@@ -5,6 +5,7 @@
             <option value="1" {% if user_type_filter == '1' %}selected{% endif %}>Admin</option>
             <option value="2" {% if user_type_filter == '2' %}selected{% endif %}>Hospital</option>
             <option value="3" {% if user_type_filter == '3' %}selected{% endif %}>Donor</option>
+            <option value="my_posts" {% if user_type_filter == 'my_posts' %}selected{% endif %}>My Posts</option>
         </select>
     </form>
 </div>
@@ -45,6 +46,13 @@
                 <img src="{{ post.shared_post.image.url }}" class="img-fluid">
             {% endif %}
         </div>
+        {% endif %}
+                <!-- Delete Button -->
+        {% if post.author == request.user %}
+            <form method="post" action="{% url 'blog:delete_post' post.id %}" style="display:inline;">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-sm btn-danger float-end" onclick="return confirm('Are you sure you want to delete this post?')">Delete</button>
+            </form>
         {% endif %}
     </div>
 

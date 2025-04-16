@@ -1,50 +1,72 @@
 
 
-from django.shortcuts import render, redirect
+from django.shortcuts import render,get_object_or_404,redirect
 from django.contrib.auth.decorators import login_required
 from .models import BlogPost, BlogLike, BlogComment
 from myapp.models import CustomUser
-from django.shortcuts import render, redirect
-from django.contrib.auth.decorators import login_required
-from .models import BlogPost
 from django.contrib import messages
 from django.db.models import Prefetch
-
-
-from django.db.models import Prefetch
+from django.urls import reverse
 
 @login_required
 def blog_feed(request):
-    # Get the user_type filter from the URL query parameters
-    user_type_filter = request.GET.get('user_type', None)
+    user_type_filter = request.GET.get('user_type')
 
-    # If no filter is provided, use the current user's user_type
-    if user_type_filter is None:
-        user_type_filter = request.user.user_type
+    if not user_type_filter:
+        user_type_filter = "my_posts"  # default to logged-in user's posts
 
-    # Filter posts based on the selected user_type
-    if user_type_filter == "1":  # Admin
-        posts = BlogPost.objects.filter(author__user_type="1").select_related('author', 'shared_post').prefetch_related('likes', 'comments')
-    elif user_type_filter == "2":  # Hospital
-        posts = BlogPost.objects.filter(author__user_type="2").select_related('author', 'shared_post').prefetch_related('likes', 'comments')
-    elif user_type_filter == "3":  # Donor
-        posts = BlogPost.objects.filter(author__user_type="3").select_related('author', 'shared_post').prefetch_related('likes', 'comments')
+    if user_type_filter == "my_posts":
+        posts = BlogPost.objects.filter(
+            author=request.user
+        ).select_related('author', 'shared_post').prefetch_related('likes', 'comments')
+
+    elif user_type_filter in ["1", "2", "3"]:
+        queryset = BlogPost.objects.filter(
+            author__user_type=user_type_filter
+        )
+
+        # Exclude current user's posts if not admin
+        if request.user.user_type != "1":
+            queryset = queryset.exclude(author=request.user)
+
+        posts = queryset.select_related('author', 'shared_post').prefetch_related('likes', 'comments')
+
     else:
         return redirect("login")
 
-    # Add 'is_liked' status to each post
+    # Add 'is_liked' flag
     for post in posts:
         post.is_liked = post.likes.filter(user=request.user).exists()
 
-    # Return the appropriate template based on the user's user_type
-    if request.user.user_type == "1":  # Admin
-        return render(request, 'admin/home.html', {'posts': posts, 'user_type_filter': user_type_filter})
-    elif request.user.user_type == "2":  # Hospital
-        return render(request, 'hospital/home.html', {'posts': posts, 'user_type_filter': user_type_filter})
-    elif request.user.user_type == "3":  # Donor
-        return render(request, 'donor/home.html', {'posts': posts, 'user_type_filter': user_type_filter})
+    # Choose template
+    template = {
+        "1": 'admin/home.html',
+        "2": 'hospital/home.html',
+        "3": 'donor/home.html'
+    }.get(request.user.user_type, 'login')
+
+    return render(request, template, {
+        'posts': posts,
+        'user_type_filter': user_type_filter
+    })
+
+
+
+
+
+@login_required
+def delete_post(request, post_id):
+    # Retrieve the post, or return a 404 if not found
+    post = get_object_or_404(BlogPost, id=post_id)
+
+    # Ensure the logged-in user is the author
+    if post.author == request.user:
+        post.delete()  # Delete the post if the user is the author
+        
+        # Redirect to the home page after deletion
+        return redirect(reverse('home'))  # Ensure this matches your URL pattern name for the home page
     else:
-        return redirect("login")
+        raise Http404("You are not authorized to delete this post.")  # Unauthorized access
 
 # @login_required
 # def blog_feed(request):

@@ -148,20 +148,23 @@ def is_hospital(user):
 #         return redirect("login")  # Redirect to login if user type is unknown
 from django.contrib.auth import logout
 
+# @login_required
+# def home(request):
+#     posts = BlogPost.objects.all().order_by('-created_at')
+
+#     if request.user.user_type == "1":
+#         return render(request, "admin/home.html", {'posts': posts})
+#     elif request.user.user_type == "2":
+#         return render(request, "hospital/home.html", {'posts': posts})
+#     elif request.user.user_type == "3":
+#         return render(request, "donor/home.html", {'posts': posts})
+#     else:
+#         logout(request)  # Optional: log them out to prevent weird states
+#         return redirect("login")  # Redirect to login if user_type is invalid
+
 @login_required
 def home(request):
-    posts = BlogPost.objects.all().order_by('-created_at')
-
-    if request.user.user_type == "1":
-        return render(request, "admin/home.html", {'posts': posts})
-    elif request.user.user_type == "2":
-        return render(request, "hospital/home.html", {'posts': posts})
-    elif request.user.user_type == "3":
-        return render(request, "donor/home.html", {'posts': posts})
-    else:
-        logout(request)  # Optional: log them out to prevent weird states
-        return redirect("login")  # Redirect to login if user_type is invalid
-
+    return redirect(f"{reverse('blog:blog_feed')}?user_type=my_posts")
 
 @login_required
 @user_passes_test(is_admin)
