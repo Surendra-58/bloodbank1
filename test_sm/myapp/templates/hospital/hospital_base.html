@@ -194,11 +194,11 @@
     <script>
         function toggleComments(postId) {
             const section = document.getElementById(`comments-${postId}`);
-            // Close all other comment sections
-            const allSections = document.querySelectorAll('.mt-3');
-            allSections.forEach((section) => {
-                if (section.id !== `comments-${postId}`) {
-                    section.style.display = "none";
+            // Close all other comment sections (only those starting with 'comments-')
+            const allSections = document.querySelectorAll('[id^="comments-"]');
+            allSections.forEach((sec) => {
+                if (sec.id !== `comments-${postId}`) {
+                    sec.style.display = "none";
                 }
             });
             // Toggle the clicked section

@@ -7,30 +7,24 @@ from myapp.models import CustomUser
 from django.contrib import messages
 from django.db.models import Prefetch
 from django.urls import reverse
+from django.http import HttpResponseRedirect
 
 @login_required
 def blog_feed(request):
     user_type_filter = request.GET.get('user_type')
+    post_id_filter = request.GET.get('post_id')  # Get post_id if available
 
     if not user_type_filter:
         user_type_filter = "my_posts"  # default to logged-in user's posts
 
+    # Get posts based on user type
     if user_type_filter == "my_posts":
-        posts = BlogPost.objects.filter(
-            author=request.user
-        ).select_related('author', 'shared_post').prefetch_related('likes', 'comments')
-
+        posts = BlogPost.objects.filter(author=request.user).select_related('author', 'shared_post').prefetch_related('likes', 'comments')
     elif user_type_filter in ["1", "2", "3"]:
-        queryset = BlogPost.objects.filter(
-            author__user_type=user_type_filter
-        )
-
-        # Exclude current user's posts if not admin
+        queryset = BlogPost.objects.filter(author__user_type=user_type_filter)
         if request.user.user_type != "1":
             queryset = queryset.exclude(author=request.user)
-
         posts = queryset.select_related('author', 'shared_post').prefetch_related('likes', 'comments')
-
     else:
         return redirect("login")
 
@@ -45,10 +39,42 @@ def blog_feed(request):
         "3": 'donor/home.html'
     }.get(request.user.user_type, 'login')
 
+    # If post_id is provided, focus on that post
+    if post_id_filter:
+        posts = posts.filter(id=post_id_filter)
+
     return render(request, template, {
         'posts': posts,
         'user_type_filter': user_type_filter
     })
+@login_required
+def comment_on_post(request, post_id):
+    post = BlogPost.objects.get(id=post_id)
+
+    # Ensure the user is authenticated
+    if not request.user.is_authenticated:
+        return redirect('login')
+
+    # Get the user_type from the request GET parameters (the one the user selected)
+    user_type_filter = request.GET.get('user_type')
+
+    if request.method == "POST":
+        content = request.POST.get('content')
+        parent_comment = request.POST.get('parent_comment')
+
+        comment = BlogComment.objects.create(
+            post=post,
+            user=request.user,
+            content=content,
+            parent_id=parent_comment if parent_comment else None
+        )
+
+        messages.success(request, "Comment added successfully!")
+
+        # Redirect to the blog_feed with user_type and post_id as query parameters
+        return redirect(reverse('blog:blog_feed') + f'?user_type={user_type_filter}&post_id={post.id}')
+
+    return redirect('blog:blog_feed')
 
 
 
@@ -116,29 +142,11 @@ def toggle_like(request, post_id):
     return redirect('blog:blog_feed')
 
 
+
+
+
+
 @login_required
-def comment_on_post(request, post_id):
-    post = BlogPost.objects.get(id=post_id)
-
-    if request.method == "POST":
-        content = request.POST.get('content')
-        parent_comment = request.POST.get('parent_comment')
-
-        comment = BlogComment.objects.create(
-            post=post,
-            user=request.user,
-            content=content,
-            parent_id=parent_comment if parent_comment else None
-        )
-
-        messages.success(request, "Comment added successfully!")
-        
-        # Redirect back to the post detail page
-        return HttpResponseRedirect(reverse('blog:post_detail', args=[post_id]))
-
-    return redirect('blog:blog_feed')
-
-
 def user_blog_profile(request, user_id):
     user = CustomUser.objects.get(id=user_id)
     posts = BlogPost.objects.filter(author=user).select_related('author')
@@ -148,6 +156,8 @@ def user_blog_profile(request, user_id):
         'posts': posts
     })
 
+
+@login_required
 def post_detail(request, post_id):
     post = BlogPost.objects.get(id=post_id)
     comments = BlogComment.objects.filter(post=post).order_by('commented_at')
