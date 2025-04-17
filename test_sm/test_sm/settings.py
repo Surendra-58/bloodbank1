@@ -26,7 +26,7 @@ SECRET_KEY = 'django-insecure-nj-n#eu$tb8&p(fxs=%z^_&7jr1093hbat*39f4v-oo%5p7l2^
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['*']
 
 LOGIN_URL = 'login'  # Replace 'login_page' with the name of your login view
 
@@ -89,14 +89,25 @@ WSGI_APPLICATION = 'test_sm.wsgi.application'
 #         'NAME': BASE_DIR / 'db.sqlite3',
 #     }
 # }
+# DATABASES = {
+#     'default': {
+#         'ENGINE': 'django.db.backends.mysql',
+#         'NAME': 'blood_bank',
+#         'USER': 'root',
+#         'PASSWORD': 'suresh',
+#         'HOST': 'localhost',
+#         'PORT': '3306',
+#     }
+# }
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'blood_bank',
-        'USER': 'root',
+        'ENGINE': 'django.db.backends.postgresql_psycopg2',
+        'NAME': 'bloodbank',
+        'USER': 'postgres',
         'PASSWORD': 'suresh',
         'HOST': 'localhost',
-        'PORT': '3306',
+        'PORT': '5432',
+
     }
 }
 
