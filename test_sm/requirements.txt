@@ -11,4 +11,4 @@ djangorestframework==3.14.0
 django-cors-headers==4.3.1
 python-decouple==3.8
 requests==2.31.0
-
+gunicorn
